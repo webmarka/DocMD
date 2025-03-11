@@ -1,2 +1,7 @@
 syntax: glob
+.env
+.env.dev
+.env.prod
+.env.stage
+*.bak
 src/
