@@ -29,12 +29,16 @@
         <ul class="nav flex-column">
             {% for page in pages %}
                 <li class="nav-item">
-                    <a class="nav-link{% if page.rel_path == current_page %} active{% endif %}" href="{{ page.rel_path }}">{{ page.title }}</a>
+                    <a class="nav-link{% if page.rel_path == current_page %} active{% endif %}" href="{{ page.rel_path }}">
+                        {% if page.is_folder %}<strong>{{ page.title }}</strong>{% else %}{{ page.title }}{% endif %}
+                    </a>
                     {% if page.sub_pages %}
                         <ul class="nav flex-column nav-nested">
                             {% for sub_page in page.sub_pages %}
                                 <li class="nav-item">
-                                    <a class="nav-link{% if sub_page.rel_path == current_page %} active{% endif %}" href="{{ sub_page.rel_path }}">{{ sub_page.title }}</a>
+                                    <a class="nav-link{% if sub_page.rel_path == current_page %} active{% endif %}" href="{{ sub_page.rel_path }}">
+                                        {% if sub_page.is_folder %}<strong>{{ sub_page.title }}</strong>{% else %}{{ sub_page.title }}{% endif %}
+                                    </a>
                                 </li>
                             {% endfor %}
                         </ul>
