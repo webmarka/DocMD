@@ -1,33 +1,73 @@
 # DocMD
 
-Generate a static documentation website from Markdown files in a project's source-code.
+**DocMD** is a lightweight tool to generate a static documentation website from Markdown files located in your project's source directories. It creates a navigable HTML structure with an intuitive sidebar, perfect for documenting code or projects, usable locally or on a web server.
 
+## Version
 
-## Getting Started
+- **0.0.2** (March 2025) - Improved navigation, robust unit tests, folder index page generation.
+- **0.0.1** (March 2025) - First proof-of-concept version.
 
-### Install the project
+## Features
 
-```
-cd /path/to/project
-git clone git@gitlab.com:webmarka/docmd.git docmd
-cd docmd
-```
+- Automatic conversion of Markdown files to HTML.
+- Generation of a sidebar navigation with folder hierarchy.
+- Index pages for each folder containing Markdown files.
+- Correct relative paths for seamless navigation in local (`file://`) or web server contexts.
+- Built-in unit tests to validate generation.
 
-### Customize to your needs
+## Prerequisites
 
-Put your files inside the `src` folder (or customize to your needs).  
-Add the `.env` file with your customized params.  
-Add `.env.development` and `.env.production` overrides if needed.
-You can change the `INCLUDE_PATHS` variable for something outside the 
-current directory but currently it works better if the path is inside 
-the current directory.  
+- Python 3.10+
+- Dependencies: `python-dotenv`, `Markdown`, `Jinja2`, `shutils` (installed via `setup.sh`).
 
-### Run the setup and start the script all in once : 
+## Installation
 
-```
-source ./setup.sh
-```
+1. **Clone the project:**
 
-## References
+    bash
+    cd /path/to/project
+    git clone git@gitlab.com:webmarka/docmd.git docmd
+    cd docmd
 
-https://gitlab.com/webmarka/docmd
+2. **Set up the environment:**
+
+- Place your Markdown files in the `src/` folder (or customize via `INCLUDE_PATHS` in `.env`).
+- Create a `.env` file with your custom parameters (see example below).
+- Optionally, add `.env.development` and `.env.production` for environment-specific overrides.
+
+**Example `.env`:**
+
+    ENV=dev
+    LANG=en_US.UTF-8  # Converted to 'en-US' for HTML
+    INCLUDE_PATHS=src
+    EXCLUDE_PATHS=.git,.hg
+    SAVE_DIR=docs
+    OUTPUT_DIR=docs
+    BACKUP_DIR=~/.docmd/archives
+    VENV_PATH=~/.docmd/venv
+    TEMPLATE=default.html
+
+3. **Run the setup and generation script:**
+
+    source ./setup.sh
+
+- Creates a virtual environment in `~/.docmd/venv/` (or as set in `VENV_PATH`).
+- Installs Python dependencies.
+- Runs unit tests.
+- Generates the static site in `docs/`, with backups in `~/.docmd/archives/` (or as set in `BACKUP_DIR`).
+
+## Usage
+
+- Open `docs/index.html` in a browser to explore the generated documentation.
+- To test on a local server:
+
+    bash
+    cd docs
+    python3 -m http.server
+
+Then visit [http://localhost:8000](http://localhost:8000).
+
+## Customization
+
+- **Input paths:** Modify `INCLUDE_PATHS` in `.env` to point to your Markdown folders (e.g., `INCLUDE_PATHS=../src1,../src2`).
+- **Excluded paths:** Adjust `EXCLUDE_PATHS` to skip specific folders (e.g., `.git,.hg`).

@@ -1,10 +1,10 @@
 # DocMD
 # Description: Generate a static documentation website from Markdown files in a project's source-code.
-# Version: 0.0.1
+# Version: 0.0.2
 # Authors: webmarka
 # URL: https://gitlab.com/webmarka/docmd
 
-# Imports.
+# Imports
 import os
 from dotenv import load_dotenv
 from pathlib import Path
@@ -35,14 +35,21 @@ def get_paths(string):
 def get_config_array(string):
     return list(map(str.strip, string.split(',')))
 
+# Function to clean LANG in BCP 47 code
+def clean_lang(lang_str):
+    """Convert a POSIX locale (e.g., 'en_US.UTF-8') to a BCP 47 language tag (e.g., 'en-US')."""
+    base_lang = lang_str.split(".")[0].replace("_", "-")
+    return base_lang
+
 # Configuration
-LANG = os.environ.get("LANG", "fr")
+LANG = clean_lang(os.environ.get("LANG", "en_US.UTF-8"))
 INCLUDE_PATHS = get_paths(os.environ.get("INCLUDE_PATHS", "src"))
 EXCLUDE_PATHS = get_paths(os.environ.get("EXCLUDE_PATHS", ".git,.hg"))
 SAVE_DIR = Path(os.environ.get("SAVE_DIR", "docs"))
 OUTPUT_DIR = Path(os.environ.get("OUTPUT_DIR", "docs"))
 TEMPLATE = os.environ.get("TEMPLATE", "default.html")
-DATE_TAG = datetime.now().strftime('%Y%m%d%H%M%S')
+BACKUP_DIR = Path(os.path.expanduser(os.getenv("BACKUP_DIR", "~/.docmd/archives")))
+DATE_TAG = datetime.now().strftime("%Y%m%d-%H%M%S")
 
 # Check if a file path should be excluded
 def should_exclude(file_path, exclude_paths):
@@ -67,7 +74,7 @@ def scan_markdown_files(include_paths, exclude_paths):
                         rel_path = file_path.relative_to(base_path).with_suffix(".html")
                         markdown_files.append({
                             "file_path": file_path,
-                            "rel_path": str(rel_path),  # Relative to docs/ root
+                            "rel_path": str(rel_path),
                             "title": file_path.stem,
                             "parent": str(file_path.parent.relative_to(base_path)) if file_path.parent != base_path else None
                         })
@@ -85,7 +92,7 @@ def scan_markdown_files(include_paths, exclude_paths):
         folder_path = Path(folder) / "index.html"
         hierarchy[str(folder_path)] = {
             "title": folder.split('/')[-1] if folder else "Home",
-            "rel_path": str(folder_path),  # Relative to docs/ root
+            "rel_path": str(folder_path),
             "sub_pages": [],
             "is_folder": True
         }
@@ -106,7 +113,6 @@ def scan_markdown_files(include_paths, exclude_paths):
                 "is_folder": False
             })
     
-    # Sort sub-pages for consistent order
     for page in hierarchy.values():
         page["sub_pages"].sort(key=lambda x: x["rel_path"])
     
@@ -122,11 +128,6 @@ def save_md_file(md_file, save_dir, base_path):
     shutil.copyfile(md_file, save_file)
     print(f"Saved: {save_file}")
 
-# Dans docmd.py, modifier ces fonctions :
-
-import os
-from pathlib import Path
-
 # Convert Markdown file to HTML
 def convert_md_to_html(md_file_info, output_dir, all_pages, base_path):
     """Convert a Markdown file to HTML and place it in the output tree."""
@@ -140,20 +141,16 @@ def convert_md_to_html(md_file_info, output_dir, all_pages, base_path):
     output_subdir.mkdir(parents=True, exist_ok=True)
     output_file = output_subdir / (md_file.stem + ".html")
     
-    # Calculate relative paths for navigation
     current_page = md_file_info["rel_path"]
     current_dir = os.path.dirname(current_page) or "."
     adjusted_pages = []
     for page in all_pages:
         target_path = page["rel_path"]
-        rel_path = os.path.relpath(target_path, current_dir).replace("\\", "/")  # Normalize to forward slashes
+        rel_path = os.path.relpath(target_path, current_dir).replace("\\", "/")
         adjusted_page = page.copy()
         adjusted_page["rel_path"] = rel_path
         adjusted_page["sub_pages"] = [
-            {
-                **sub,
-                "rel_path": os.path.relpath(sub["rel_path"], current_dir).replace("\\", "/")
-            }
+            {**sub, "rel_path": os.path.relpath(sub["rel_path"], current_dir).replace("\\", "/")}
             for sub in page["sub_pages"]
         ]
         adjusted_pages.append(adjusted_page)
@@ -181,7 +178,6 @@ def generate_folder_index(folder_path, output_dir, all_pages, sub_pages):
     output_file = output_dir / folder_path / "index.html"
     output_file.parent.mkdir(parents=True, exist_ok=True)
     
-    # Calculate relative paths for navigation (sidebar)
     current_page = str(folder_path / "index.html" if folder_path.name else "index.html")
     current_dir = os.path.dirname(current_page) or "."
     adjusted_pages = []
@@ -191,21 +187,16 @@ def generate_folder_index(folder_path, output_dir, all_pages, sub_pages):
         adjusted_page = page.copy()
         adjusted_page["rel_path"] = rel_path
         adjusted_page["sub_pages"] = [
-            {
-                **sub,
-                "rel_path": os.path.relpath(sub["rel_path"], current_dir).replace("\\", "/")
-            }
+            {**sub, "rel_path": os.path.relpath(sub["rel_path"], current_dir).replace("\\", "/")}
             for sub in page["sub_pages"]
         ]
         adjusted_pages.append(adjusted_page)
     
-    # Dans generate_folder_index, avant le content :
-    print(f"Generating index for {folder_path}, sub_pages: {sub_pages}")
+    if debug:
+        print(f"Generating index for {folder_path}, sub_pages: {sub_pages}")
     
-    # Generate content with correct relative links for sub_pages
     content = f"<h2>{folder_path.name if folder_path.name else 'Home'}</h2><ul>"
     for sub_page in sub_pages:
-        # Calculate the relative path from the current index to the sub_page
         sub_target_path = sub_page["rel_path"]
         sub_rel_path = os.path.relpath(sub_target_path, current_dir).replace("\\", "/")
         content += f"<li><a href='{quote(sub_rel_path)}'>{sub_page['title']}</a></li>"
@@ -228,16 +219,51 @@ def generate_folder_index(folder_path, output_dir, all_pages, sub_pages):
         f.write(html_output)
     print(f"Generated: {output_file}")
 
-# Main site generation function
+# Security check for directories
+def directory_security_check(directory):
+    """Check if a directory is safe to use."""
+    return (
+        directory != Path("") and
+        directory != Path(".") and
+        directory != Path("..") and
+        not directory.is_absolute() and
+        directory != Path("/") and
+        directory != Path("./")
+    )
+
+# Clean a directory with backup
+def clean_dir(directory):
+    """Clean a directory with a backup."""
+    if not directory_security_check(directory):
+        print(f"Error: Attempt to clean invalid directory '{directory}' skipped.")
+        return False
+    backup_dir = BACKUP_DIR / f"{directory.name}_{DATE_TAG}"
+    if directory.exists():
+        print(f"Backing up '{directory}' to '{backup_dir}'.")
+        BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+        try:
+            shutil.move(directory, backup_dir)
+        except Exception as e:
+            print(f"Error: Failed to backup '{directory}' to '{backup_dir}': {e}")
+            return False
+    directory.mkdir(parents=True, exist_ok=True)
+    return True
+
+# Main site generation function.
 def generate_site():
-    global OUTPUT_DIR, SAVE_DIR
     """Generate the static site."""
+    global OUTPUT_DIR  # Déplacé en haut
+    # Validate and clean directories
     if not directory_security_check(OUTPUT_DIR):
+        print(f"Warning: OUTPUT_DIR '{OUTPUT_DIR}' is unsafe, resetting to 'docs'.")
         OUTPUT_DIR = Path("docs")
-    clean_dir(SAVE_DIR)
-    clean_dir(OUTPUT_DIR)
+    
+    clean_dir(OUTPUT_DIR)  # Nettoie uniquement OUTPUT_DIR
+    
+    # Use SAVE_DIR if specified and safe, otherwise use OUTPUT_DIR
     save_dir = OUTPUT_DIR
-    if directory_security_check(SAVE_DIR):
+    if directory_security_check(SAVE_DIR) and SAVE_DIR != OUTPUT_DIR:
+        clean_dir(SAVE_DIR)
         save_dir = SAVE_DIR
     
     # Check if INCLUDE_PATHS exist
@@ -266,36 +292,6 @@ def generate_site():
         folder_path = Path(page["rel_path"]).parent
         generate_folder_index(folder_path, OUTPUT_DIR, pages_hierarchy, page["sub_pages"])
 
-# Security check for directories
-def directory_security_check(directory):
-    status = False
-    if (
-        directory != Path("")          # Not empty
-        and directory != Path(".")     # Not current dir
-        and directory != Path("..")    # Not parent dir
-        and not directory.is_absolute()  # Not absolute path
-        and directory != Path("/")     # Not root
-        and directory != Path("./")    # Not "./"
-    ):
-        status = True
-    return status
-
-# Clean a directory with backup
-def clean_dir(directory):
-    """Clean a directory with a backup."""
-    security_check = directory_security_check(directory)
-    if not security_check or str(directory) in [".", ".."]:
-        print(f"Error: Attempt to clean invalid directory '{directory}' skipped.")
-        return False
-    if directory.exists():
-        print("Backup the old site.")
-        shutil.copytree(directory, f"{directory}.{DATE_TAG}.bak", dirs_exist_ok=True)
-        print("Remove old generated files.")
-        shutil.rmtree(directory)
-    else:
-        directory.mkdir(parents=True)
-    return True
-
-# Main function.
+# Main function
 if __name__ == "__main__":
     generate_site()
