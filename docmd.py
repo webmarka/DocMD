@@ -181,7 +181,7 @@ def generate_folder_index(folder_path, output_dir, all_pages, sub_pages):
     output_file = output_dir / folder_path / "index.html"
     output_file.parent.mkdir(parents=True, exist_ok=True)
     
-    # Calculate relative paths for navigation
+    # Calculate relative paths for navigation (sidebar)
     current_page = str(folder_path / "index.html" if folder_path.name else "index.html")
     current_dir = os.path.dirname(current_page) or "."
     adjusted_pages = []
@@ -199,16 +199,24 @@ def generate_folder_index(folder_path, output_dir, all_pages, sub_pages):
         ]
         adjusted_pages.append(adjusted_page)
     
+    # Dans generate_folder_index, avant le content :
+    print(f"Generating index for {folder_path}, sub_pages: {sub_pages}")
+    
+    # Generate content with correct relative links for sub_pages
+    content = f"<h2>{folder_path.name if folder_path.name else 'Home'}</h2><ul>"
+    for sub_page in sub_pages:
+        # Calculate the relative path from the current index to the sub_page
+        sub_target_path = sub_page["rel_path"]
+        sub_rel_path = os.path.relpath(sub_target_path, current_dir).replace("\\", "/")
+        content += f"<li><a href='{quote(sub_rel_path)}'>{sub_page['title']}</a></li>"
+    content += "</ul>"
+    
     env = jinja2.Environment(loader=jinja2.FileSystemLoader('templates'))
     try:
         template = env.get_template(TEMPLATE)
     except jinja2.TemplateNotFound:
         print(f"Error: Template '{TEMPLATE}' not found in 'templates/'")
         return
-    content = f"<h2>{folder_path.name if folder_path.name else 'Home'}</h2><ul>"
-    for sub_page in sub_pages:
-        content += f"<li><a href='{quote(sub_page['rel_path'])}'>{sub_page['title']}</a></li>"
-    content += "</ul>"
     html_output = template.render(
         title=folder_path.name if folder_path.name else "Home",
         content=content,
