@@ -5,3 +5,4 @@ syntax: glob
 .env.stage
 *.bak
 src/
+__pycache__/

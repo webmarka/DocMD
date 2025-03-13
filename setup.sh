@@ -5,21 +5,21 @@
 # 2025-03-11 (v0.0.1) - New bash version.
 # source ./setup.sh
 
-echo ;
-echo -e "#######################################################################" ;
-echo -e "#                                DocMD                                #" ;
-echo -e "#######################################################################" ;
-echo ;
+echo
+echo -e "#######################################################################"
+echo -e "#                                DocMD                                #"
+echo -e "#######################################################################"
+echo
 
-# Install Python 3.
+# Install Python 3 (commented as assumed already installed)
 # sudo yum install python3
 # sudo apt-get install python3
 
-# Update pip.
+# Update pip (commented as optional)
 # python3 -m pip install --upgrade pip
 
-# Environment.
-echo -e "- Setup Virtual Environment." ; echo ;
+# Environment
+echo -e "- Setup Virtual Environment." ; echo
 # sudo apt-get install -y python3-venv
 APP_NAME=docmd
 INIT_LOC=$(pwd)
@@ -33,34 +33,26 @@ if [ ! -d "${ENV_APP_PATH}" ] ; then
 fi
 source "${ENV_APP_PATH}bin/activate"
 
-# Python packages.
-echo -e "- Install Python packages." ; echo ;
-
-# Environments variables.
+# Python packages
+echo -e "- Install Python packages." ; echo
 pip3 install python-dotenv
-
-# Install Markdown.
 pip3 install Markdown
-
-# Install Jinja2.
 pip3 install Jinja2
-
-# Install shutils.
 pip3 install shutils
+# pip3 install urllib3
+# pip3 install mkdocs
 
-# Install urllib3.
-#pip3 install urllib3
+# Unit tests
+echo -e "- Running unit tests..." ; echo
+python3 ./test_docmd.py
+echo -e "\n--- Tests completed ---\n"
 
-# Install mkdocs.
-#pip3 install mkdocs
-
-# Run app.
-echo ;
-echo -e "- Start the app." ; echo ;
+# Run app
+echo -e "- Start the app." ; echo
 python3 ./docmd.py
 
-# Exit the script properly.
-echo ;
-echo -e "=======================================================================" ;
-echo ;
-#exit 0;
+# Exit the script properly
+echo
+echo -e "======================================================================="
+echo
+# exit 0
