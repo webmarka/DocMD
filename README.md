@@ -24,16 +24,15 @@
 
 1. **Clone the project:**
 
-    bash
-    cd /path/to/project
-    git clone git@gitlab.com:webmarka/docmd.git docmd
-    cd docmd
+        cd /path/to/project
+        git clone git@gitlab.com:webmarka/docmd.git docmd
+        cd docmd
 
 2. **Set up the environment:**
 
-- Place your Markdown files in the `src/` folder (or customize via `INCLUDE_PATHS` in `.env`).
-- Create a `.env` file with your custom parameters (see example below).
-- Optionally, add `.env.development` and `.env.production` for environment-specific overrides.
+    - Place your Markdown files in the `src/` folder (or customize via `INCLUDE_PATHS` in `.env`).
+    - Create a `.env` file with your custom parameters (see example below).
+    - Optionally, add `.env.development` and `.env.production` for environment-specific overrides.
 
 **Example `.env`:**
 
@@ -49,23 +48,29 @@
 
 3. **Run the setup and generation script:**
 
-    source ./setup.sh
+    `source ./setup.sh`
 
-- Creates a virtual environment in `~/.docmd/venv/` (or as set in `VENV_PATH`).
-- Installs Python dependencies.
-- Runs unit tests.
-- Generates the static site in `docs/`, with backups in `~/.docmd/archives/` (or as set in `BACKUP_DIR`).
+    - Creates a virtual environment in `~/.docmd/venv/` (or as set in `VENV_PATH`).
+    - Installs Python dependencies.
+    - Runs unit tests.
+    - Generates the static site in `docs/`, with backups in `~/.docmd/archives/` (or as set in `BACKUP_DIR`).
 
 ## Usage
 
 - Open `docs/index.html` in a browser to explore the generated documentation.
 - To test on a local server:
 
-    bash
-    cd docs
-    python3 -m http.server
+      # bash
+      cd docs
+      python3 -m http.server
 
 Then visit [http://localhost:8000](http://localhost:8000).
+
+## Troubleshooting
+
+On the first run, you may need to install some packages et the Python environment will be set up. If any problem occurs while running `source ./setup.py`, use this instead (prevents the terminal to close on error): 
+
+    ./setup.py
 
 ## Customization
 
