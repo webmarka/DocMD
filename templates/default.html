@@ -2,11 +2,38 @@
 <html lang="{{ lang }}">
 <head>
     <meta charset="UTF-8">
-    <title>{{ title }}</title>
+    <title>{{ title }} - DocMD</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        .sidebar {
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            padding-top: 20px;
+            background-color: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            overflow-y: auto;
+        }
+        .content {
+            margin-left: 270px;
+            padding: 20px;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
+    <div class="sidebar">
+        <h4 class="px-3">Documentation</h4>
+        <ul class="nav flex-column">
+            {% for page in pages %}
+                <li class="nav-item">
+                    <a class="nav-link{% if page.rel_path == current_page %} active{% endif %}" href="{{ page.rel_path }}">{{ page.title }}</a>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="content">
         <h1>{{ title }}</h1>
         {{ content | safe }}
     </div>
