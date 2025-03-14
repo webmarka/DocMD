@@ -1,8 +1,8 @@
 #!/bin/bash
 # DocMD Setup
-# Version: 0.0.2
+# Version: 0.0.3
 # Authors: webmarka
-# 2025-03-13 (v0.0.2) - Added unit tests.
+# 2025-03-14 (v0.0.3) - Added security checks.
 # Usage: source ./setup.sh or ./setup.sh
 
 echo
@@ -12,12 +12,20 @@ echo -e "#######################################################################
 echo
 
 # Version
-echo "- Version: 0.0.2"
+echo "- Version: 0.0.3"
+echo
 
-# Check if python3 is available
+# Check if python3 is available.
 echo "Checking for python3..."
 if ! command -v python3 &> /dev/null; then
     echo "Error: python3 is not installed or not in PATH."
+    exit 1
+fi
+
+# Check if pip3 is available,
+echo "Checking for pip3..."
+if ! command -v pip3 --version &> /dev/null; then
+    echo "Error: pip3 is not installed or not in PATH."
     exit 1
 fi
 
@@ -91,7 +99,7 @@ fi
 
 echo
 echo "--- Tests completed ---"
-echo
+#echo
 
 # Start the app
 echo

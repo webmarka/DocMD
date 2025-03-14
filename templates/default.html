@@ -1,42 +1,49 @@
 <!DOCTYPE html>
-<html lang="{{ lang }}">
+<html lang="{{ lang }}" data-bs-theme="{{ theme_mode }}">
 <head>
     <meta charset="UTF-8">
-    <title>{{ title }} - DocMD</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <title>{{ title }} - {{ app_name }}</title>
+    <!-- Favicons -->
+    <link rel="apple-touch-icon" sizes="57x57" href="{{ assets_path }}/img/favicon-57x57.png" type="image/png" />
+    <link rel="apple-touch-icon" sizes="60x60" href="{{ assets_path }}/img/favicon-60x60.png" type="image/png" />
+    <link rel="apple-touch-icon" sizes="72x72" href="{{ assets_path }}/img/favicon-72x72.png" type="image/png" />
+    <link rel="apple-touch-icon" sizes="114x114" href="{{ assets_path }}/img/favicon-114x114.png" type="image/png" />
+    <link rel="apple-touch-icon" sizes="120x120" href="{{ assets_path }}/img/favicon-120x120.png" type="image/png" />
+    <link rel="apple-touch-icon" sizes="144x144" href="{{ assets_path }}/img/favicon-144x144.png" type="image/png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="{{ assets_path }}/img/favicon-152x152.png" type="image/png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ assets_path }}/img/favicon-180x180.png" type="image/png" />
+    <link rel="icon" sizes="16x16" href="{{ assets_path }}/img/favicon-16x16.png" type="image/png" />
+    <link rel="icon" sizes="32x32" href="{{ assets_path }}/img/favicon-32x32.png" type="image/png" />
+    <link rel="icon" sizes="96x96" href="{{ assets_path }}/img/favicon-96x96.png" type="image/png" />
+    <link rel="icon" sizes="192x192" href="{{ assets_path }}/img/favicon-192x192.png" type="image/png" />
+    <link rel="icon" sizes="512x512" href="{{ assets_path }}/img/favicon-512x512.png" type="image/png" />
+    <!--<link rel="icon" href="{{ assets_path }}/img/favicon.svg"  type="image/svg+xml" />-->
+    <link rel="manifest" href="{{ assets_path }}/img/manifest.json" />
+    <meta name="theme-color" content="#FFFFFF" />
+    <meta name="msapplication-TileColor" content="#FFFFFF" />
+    <meta name="msapplication-TileImage" content="{{ assets_path }}/img/favicon-512x512.png" />
+    <!-- Styles -->
+    <link rel="stylesheet" href="{{ bs_css_path }}">
+    <link rel="stylesheet" href="{{ css_path }}">
+    <link rel="stylesheet" href="{{ theme_css_path }}">
     <style>
-        .sidebar {
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 250px;
-            padding-top: 20px;
-            background-color: #f8f9fa;
-            border-right: 1px solid #dee2e6;
-            overflow-y: auto;
-        }
-        .content {
-            margin-left: 270px;
-            padding: 20px;
-        }
-        .nav-nested { margin-left: 20px; }
     </style>
 </head>
 <body>
+  <main>
     <div class="sidebar">
-        <h4 class="px-3">Documentation</h4>
+        <h4 class="px-3">{{ nav_title }}</h4>
         <ul class="nav flex-column">
             {% for page in pages %}
                 <li class="nav-item">
-                    <a class="nav-link{% if page.rel_path == current_page %} active{% endif %}" href="{{ page.rel_path | urlencode }}">
+                    <a class="nav-link{% if page.target_path == current_page %} active{% endif %}" href="{{ page.rel_path | urlencode }}">
                         {% if page.is_folder %}<strong>{{ page.title }}</strong>{% else %}{{ page.title }}{% endif %}
                     </a>
                     {% if page.sub_pages %}
                         <ul class="nav flex-column nav-nested">
                             {% for sub_page in page.sub_pages %}
                                 <li class="nav-item">
-                                    <a class="nav-link{% if sub_page.rel_path == current_page %} active{% endif %}" href="{{ sub_page.rel_path | urlencode }}">
+                                    <a class="nav-link{% if sub_page.target_path == current_page %} active{% endif %}" href="{{ sub_page.rel_path | urlencode }}">
                                         {% if sub_page.is_folder %}<strong>{{ sub_page.title }}</strong>{% else %}{{ sub_page.title }}{% endif %}
                                     </a>
                                 </li>
@@ -51,5 +58,12 @@
         <h1>{{ title }}</h1>
         {{ content | safe }}
     </div>
+  </main>
+  <footer>
+    <small>{{ footer }}</small>
+  </footer>
+    <script type="text/javascript">
+    </script>
+    <script type="text/javascript" src="{{ assets_path }}/js/script.js?v={{ app_version }}"></script>
 </body>
 </html>

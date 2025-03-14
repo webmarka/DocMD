@@ -1,6 +1,6 @@
 # DocMD
 # Description: Generate a static documentation website from Markdown files in a project's source-code.
-# Version: 0.0.2
+# Version: 0.0.3
 # Authors: webmarka
 # URL: https://gitlab.com/webmarka/docmd
 
@@ -50,6 +50,21 @@ OUTPUT_DIR = Path(os.environ.get("OUTPUT_DIR", "docs"))
 TEMPLATE = os.environ.get("TEMPLATE", "default.html")
 BACKUP_DIR = Path(os.path.expanduser(os.getenv("BACKUP_DIR", "~/.docmd/archives")))
 DATE_TAG = datetime.now().strftime("%Y%m%d-%H%M%S")
+DATE_TAG_HUMAN = datetime.now().strftime("%Y-%m-%d at %H:%M:%S")
+# Variables.
+APP_NAME = 'DocMD'
+APP_VERSION = '0.0.3'
+APP_URL = 'https://docmd.us/'
+NAV_TITLE = os.environ.get("NAV_TITLE", "Documentation")
+ASSETS_PATH = '../static'
+CSS_PATH = '../static/css/style.css'
+THEMES = {'default', 'dark'}
+THEME = os.environ.get("THEME", "default")
+THEME_MODE = 'dark' if THEME == 'dark' else 'light'
+FOOTER = f"Powered by <a href=\"{APP_URL}\" target=\"_blank\">{APP_NAME}</a><br /><small>Document generated on {DATE_TAG_HUMAN}</small>"
+USE_EXTERNAL_ASSETS = os.environ.get("USE_EXTERNAL_ASSETS", 'False')
+BS_CSS_URL = "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+BS_CSS_PATH = '../static/css/bootstrap.min.css'
 
 # Check if a file path should be excluded
 def should_exclude(file_path, exclude_paths):
@@ -93,6 +108,7 @@ def scan_markdown_files(include_paths, exclude_paths):
         hierarchy[str(folder_path)] = {
             "title": folder.split('/')[-1] if folder else "Home",
             "rel_path": str(folder_path),
+            "target_path": str(folder_path),
             "sub_pages": [],
             "is_folder": True
         }
@@ -100,16 +116,19 @@ def scan_markdown_files(include_paths, exclude_paths):
         hierarchy["index.html"] = {
             "title": "Home",
             "rel_path": "index.html",
+            "target_path": "index.html",
             "sub_pages": [],
             "is_folder": True
         }
     
     for file in markdown_files:
         parent_key = str(Path(file["parent"] or "").joinpath("index.html")) if file["parent"] else "index.html"
+        filename = os.path.basename(file["file_path"])
         if file["rel_path"] != parent_key:
             hierarchy[parent_key]["sub_pages"].append({
                 "title": file["title"],
                 "rel_path": file["rel_path"],
+                "target_path": str(file["file_path"]),
                 "is_folder": False
             })
     
@@ -140,84 +159,117 @@ def convert_md_to_html(md_file_info, output_dir, all_pages, base_path):
     output_subdir = output_dir / relative_path.parent
     output_subdir.mkdir(parents=True, exist_ok=True)
     output_file = output_subdir / (md_file.stem + ".html")
-    
     current_page = md_file_info["rel_path"]
     current_dir = os.path.dirname(current_page) or "."
-    adjusted_pages = []
-    for page in all_pages:
-        target_path = page["rel_path"]
-        rel_path = os.path.relpath(target_path, current_dir).replace("\\", "/")
-        adjusted_page = page.copy()
-        adjusted_page["rel_path"] = rel_path
-        adjusted_page["sub_pages"] = [
-            {**sub, "rel_path": os.path.relpath(sub["rel_path"], current_dir).replace("\\", "/")}
-            for sub in page["sub_pages"]
-        ]
-        adjusted_pages.append(adjusted_page)
+    adjusted_pages = get_pages_links(current_dir, all_pages, base_path)
+    title=md_file_info["title"]
+    css_path = get_relative_path(CSS_PATH, current_dir)
+    theme_css_path = get_theme_css_path(current_dir)
+    assets_path = get_relative_path(ASSETS_PATH, current_dir)
+    bs_css_path = get_relative_path(BS_CSS_PATH, current_dir)
+    bs_css_path = BS_CSS_URL if USE_EXTERNAL_ASSETS != 'False' else bs_css_path
     
+    if debug:
+        print(f"Generating page {title}, current_page: {current_page}")
+    
+    generate_page(current_page, title, html_content, output_file, adjusted_pages, css_path, theme_css_path, assets_path, bs_css_path)
+
+# Generate folder index page
+def generate_folder_index(folder_path, output_dir, all_pages, sub_pages, base_path):
+    """Generate an index.html for a folder."""
+    output_file = output_dir / folder_path / "index.html"
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    current_page = str(folder_path / "index.html" if folder_path.name else "index.html")
+    current_dir = os.path.dirname(current_page) or "."
+    adjusted_pages = get_pages_links(current_dir, all_pages, base_path)
+    title = folder_path.name if folder_path.name else "Home"
+    css_path = get_relative_path(CSS_PATH, current_dir)
+    theme_css_path = get_theme_css_path(current_dir)
+    assets_path = get_relative_path(ASSETS_PATH, current_dir)
+    bs_css_path = get_relative_path(BS_CSS_PATH, current_dir)
+    bs_css_path = BS_CSS_URL if USE_EXTERNAL_ASSETS != 'False' else bs_css_path
+    
+    if debug:
+        print(f"Generating index for {folder_path}, current_page: {current_page}, sub_pages: {sub_pages}")
+    
+    content = f"<h2>{title}</h2><ul>"
+    for sub_page in sub_pages:
+        sub_target_path = sub_page["rel_path"]
+        sub_rel_path = get_relative_path(sub_target_path, current_dir)
+        content += f"<li><a href='{quote(sub_rel_path)}'>{sub_page['title']}</a></li>"
+    content += "</ul>"
+    
+    generate_page(current_page, title, content, output_file, adjusted_pages, css_path, theme_css_path, assets_path, bs_css_path)
+
+def generate_page(current_page, title, content, output_file, pages, css_path, theme_css_path, assets_path, bs_css_path):
     env = jinja2.Environment(loader=jinja2.FileSystemLoader('templates'))
     try:
         template = env.get_template(TEMPLATE)
     except jinja2.TemplateNotFound:
         print(f"Error: Template '{TEMPLATE}' not found in 'templates/'")
         return
+    title = title if title else "Home"
+    
     html_output = template.render(
-        title=md_file_info["title"],
-        content=html_content,
+        title=title,
+        content=content,
         lang=LANG,
-        pages=adjusted_pages,
-        current_page=current_page
+        pages=pages,
+        current_page=current_page,
+        css_path=css_path,
+        theme_css_path=theme_css_path,
+        theme_mode=THEME_MODE,
+        assets_path=assets_path,
+        footer=FOOTER,
+        app_name=APP_NAME,
+        nav_title=NAV_TITLE,
+        bs_css_path=bs_css_path,
+        app_version=APP_VERSION
     )
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(html_output)
     print(f"Generated: {output_file}")
 
-# Generate folder index page
-def generate_folder_index(folder_path, output_dir, all_pages, sub_pages):
-    """Generate an index.html for a folder."""
-    output_file = output_dir / folder_path / "index.html"
-    output_file.parent.mkdir(parents=True, exist_ok=True)
-    
-    current_page = str(folder_path / "index.html" if folder_path.name else "index.html")
-    current_dir = os.path.dirname(current_page) or "."
-    adjusted_pages = []
+def get_pages_links(current_dir, all_pages, base_path):
+    pages = []
     for page in all_pages:
-        target_path = page["rel_path"]
-        rel_path = os.path.relpath(target_path, current_dir).replace("\\", "/")
-        adjusted_page = page.copy()
-        adjusted_page["rel_path"] = rel_path
-        adjusted_page["sub_pages"] = [
-            {**sub, "rel_path": os.path.relpath(sub["rel_path"], current_dir).replace("\\", "/")}
+        #target_path = page["target_path"]
+        rel_path = get_relative_path(page["rel_path"], current_dir)
+        page = page.copy()
+        page["rel_path"] = rel_path
+        #page["target_path"] = target_path
+        page["sub_pages"] = [
+            {**sub, "rel_path": get_relative_path(sub["rel_path"], current_dir), "target_path": get_relative_path(sub["target_path"], base_path).replace(".md", ".html")}
             for sub in page["sub_pages"]
         ]
-        adjusted_pages.append(adjusted_page)
+        pages.append(page)
     
-    if debug:
-        print(f"Generating index for {folder_path}, sub_pages: {sub_pages}")
-    
-    content = f"<h2>{folder_path.name if folder_path.name else 'Home'}</h2><ul>"
-    for sub_page in sub_pages:
-        sub_target_path = sub_page["rel_path"]
-        sub_rel_path = os.path.relpath(sub_target_path, current_dir).replace("\\", "/")
-        content += f"<li><a href='{quote(sub_rel_path)}'>{sub_page['title']}</a></li>"
-    content += "</ul>"
-    
-    env = jinja2.Environment(loader=jinja2.FileSystemLoader('templates'))
-    try:
-        template = env.get_template(TEMPLATE)
-    except jinja2.TemplateNotFound:
-        print(f"Error: Template '{TEMPLATE}' not found in 'templates/'")
-        return
-    html_output = template.render(
-        title=folder_path.name if folder_path.name else "Home",
-        content=content,
-        lang=LANG,
-        pages=adjusted_pages,
-        current_page=current_page
-    )
-    with open(output_file, "w", encoding="utf-8") as f:
-        f.write(html_output)
-    print(f"Generated: {output_file}")
+    return pages
+
+# Get relative path from current directory.
+def get_relative_path(target_path, current_dir):
+    rel_path = os.path.relpath(target_path, current_dir).replace("\\", "/")
+    return rel_path or target_path
+
+def get_theme(theme):
+    if theme and theme in THEMES: 
+      return theme
+    else:
+      return get_default_theme()
+
+def get_current_theme():
+    current_theme = THEME if THEME else get_default_theme();
+    return current_theme;
+
+def get_default_theme():
+    return 'default';
+
+def get_theme_css_path(current_dir):
+    current_theme = get_current_theme()
+    theme = get_theme(current_theme)
+    THEME_CSS_PATH = f"../static/css/style-{theme}.css"
+    theme_css_path = get_relative_path(THEME_CSS_PATH, current_dir)
+    return theme_css_path
 
 # Security check for directories
 def directory_security_check(directory):
@@ -290,7 +342,7 @@ def generate_site():
     print("\nGenerate folder indexes.")
     for page in pages_hierarchy:
         folder_path = Path(page["rel_path"]).parent
-        generate_folder_index(folder_path, OUTPUT_DIR, pages_hierarchy, page["sub_pages"])
+        generate_folder_index(folder_path, OUTPUT_DIR, pages_hierarchy, page["sub_pages"], base_path)
 
 # Main function
 if __name__ == "__main__":

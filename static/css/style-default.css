@@ -1,0 +1,30 @@
+/**
+ * Default Theme styles.
+**/
+
+.sidebar {
+    background-color: #f8f9fa;
+    border-right-color: #dee2e6;
+}
+.content {
+}
+footer {
+    background: #E7E7E7;
+    border-top-color: #dee2e6;
+}
+
+.nav-nested {
+}
+
+h2, h3, h4, h5, h6 {
+  color: #595959;
+}
+.content h1:not(:first-child) {
+  color: #595959;
+}
+.content h1:first-child {
+  border-bottom-color: #dee2e6;
+}
+.sidebar h4:first-child {
+  border-bottom-color: #dee2e6;
+}

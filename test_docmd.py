@@ -33,20 +33,40 @@ def create_test_tree(base_dir):
     (base_dir / "templates").mkdir(parents=True, exist_ok=True)
     (base_dir / "templates" / "default.html").write_text("""
 <!DOCTYPE html>
-<html lang="{{ lang }}">
+<html lang="{{ lang }}" data-bs-theme="{{ theme_mode }}>
 <head>
     <meta charset="UTF-8">
     <title>{{ title }} - DocMD</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <!-- Favicons -->
+    <link rel="apple-touch-icon" sizes="57x57" href="{{ assets_path }}/img/favicon-57x57.png" type="image/png" />
+    <link rel="apple-touch-icon" sizes="60x60" href="{{ assets_path }}/img/favicon-60x60.png" type="image/png" />
+    <link rel="apple-touch-icon" sizes="72x72" href="{{ assets_path }}/img/favicon-72x72.png" type="image/png" />
+    <link rel="apple-touch-icon" sizes="114x114" href="{{ assets_path }}/img/favicon-114x114.png" type="image/png" />
+    <link rel="apple-touch-icon" sizes="120x120" href="{{ assets_path }}/img/favicon-120x120.png" type="image/png" />
+    <link rel="apple-touch-icon" sizes="144x144" href="{{ assets_path }}/img/favicon-144x144.png" type="image/png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="{{ assets_path }}/img/favicon-152x152.png" type="image/png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ assets_path }}/img/favicon-180x180.png" type="image/png" />
+    <link rel="icon" sizes="16x16" href="{{ assets_path }}/img/favicon-16x16.png" type="image/png" />
+    <link rel="icon" sizes="32x32" href="{{ assets_path }}/img/favicon-32x32.png" type="image/png" />
+    <link rel="icon" sizes="96x96" href="{{ assets_path }}/img/favicon-96x96.png" type="image/png" />
+    <link rel="icon" sizes="192x192" href="{{ assets_path }}/img/favicon-192x192.png" type="image/png" />
+    <link rel="icon" sizes="512x512" href="{{ assets_path }}/img/favicon-512x512.png" type="image/png" />
+    <!--<link rel="icon" href="{{ assets_path }}/img/favicon.svg"  type="image/svg+xml" />-->
+    <link rel="manifest" href="{{ assets_path }}/img/manifest.json" />
+    <meta name="theme-color" content="#FFFFFF" />
+    <meta name="msapplication-TileColor" content="#FFFFFF" />
+    <meta name="msapplication-TileImage" content="{{ assets_path }}/img/favicon-512x512.png" />
+    <!-- Styles -->
+    <link rel="stylesheet" href="{{ bs_css_path }}">
+    <link rel="stylesheet" href="{{ css_path }}">
+    <link rel="stylesheet" href="{{ theme_css_path }}">
     <style>
-        .sidebar { height: 100vh; position: fixed; top: 0; left: 0; width: 250px; padding-top: 20px; background-color: #f8f9fa; border-right: 1px solid #dee2e6; overflow-y: auto; }
-        .content { margin-left: 270px; padding: 20px; }
-        .nav-nested { margin-left: 20px; }
     </style>
 </head>
 <body>
+  <main>
     <div class="sidebar">
-        <h4 class="px-3">Documentation</h4>
+        <h4 class="px-3">{{ nav_title }}</h4>
         <ul class="nav flex-column">
             {% for page in pages %}
                 <li class="nav-item">
@@ -72,6 +92,13 @@ def create_test_tree(base_dir):
         <h1>{{ title }}</h1>
         {{ content | safe }}
     </div>
+  </main>
+  <footer>
+    <small>{{ footer }}</small>
+  </footer>
+    <script type="text/javascript">
+    </script>
+    <script type="text/javascript" src="{{ assets_path }}/js/script.js?v={{ app_version }}"></script>
 </body>
 </html>
     """)
@@ -175,13 +202,28 @@ class TestDocMD(unittest.TestCase):
                 mock_template = mock_jinja_env.return_value.get_template.return_value
                 mock_template.render.return_value = "<html>Test</html>"
                 docmd.convert_md_to_html(md_file_info, self.output_dir, [], self.include_paths[0])
+                css_path = docmd.get_relative_path(docmd.CSS_PATH, self.test_dir)
+                theme_css_path = docmd.get_theme_css_path(self.test_dir)
+                assets_path = docmd.get_relative_path(docmd.ASSETS_PATH, self.test_dir)
+                bs_css_path = docmd.get_relative_path(docmd.BS_CSS_PATH, self.test_dir)
+                bs_css_path = docmd.BS_CSS_URL if docmd.USE_EXTERNAL_ASSETS != 'False' else bs_css_path
+                
                 # Instead of checking file existence, verify the render call
                 mock_template.render.assert_called_once_with(
                     title="doc",
                     content="<h1>Doc in module1</h1>",
                     lang=docmd.LANG,
                     pages=[],
-                    current_page="module1/doc.html"
+                    current_page="module1/doc.html",
+                    css_path=css_path,
+                    theme_css_path=theme_css_path,
+                    theme_mode=docmd.THEME_MODE,
+                    assets_path=assets_path,
+                    footer=docmd.FOOTER,
+                    app_name=docmd.APP_NAME,
+                    nav_title=docmd.NAV_TITLE,
+                    bs_css_path=bs_css_path,
+                    app_version=docmd.APP_VERSION
                 )
 
 if __name__ == "__main__":

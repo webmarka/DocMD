@@ -1,0 +1,47 @@
+/**
+ * Base styles.
+**/
+
+main {
+    height: 90vh;
+}
+.sidebar {
+    height: 90vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 250px;
+    padding-top: 20px;
+    border-right: 1px solid;
+    overflow-y: auto;
+}
+.content {
+    margin-left: 270px;
+    padding: 20px;
+}
+footer {
+    height: 10vh;
+    padding: 20px;
+    text-align: right;
+    border-top: 1px solid;
+}
+
+.nav-nested {
+  margin-left: 20px;
+}
+
+h2, h3, h4, h5, h6 {
+}
+.content h1:not(:first-child) {
+  font-size: calc(1.325rem + .9vw);
+}
+.content h1:first-child {
+  border-bottom: 1px solid;
+  padding-bottom: 10px;
+}
+.sidebar h4:first-child {
+  color: inherit;
+  padding-top: 8px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid;
+}

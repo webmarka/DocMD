@@ -1,0 +1,44 @@
+/**
+ * Dark Theme styles.
+**/
+
+body, html {
+/*
+	background-color: #111111;
+  color: #fff;
+*/
+}
+
+.sidebar {
+    background: rgba(0,0,0,0.5);
+    border-right-color: #222222;
+}
+.content {
+}
+footer {
+    background: rgba(0,0,0,0.7);
+    border-top-color: #222222;
+    border-top: none;
+}
+
+.nav-nested {
+}
+
+h2, h3, h4, h5, h6 {
+  color: #CCD5DE;
+}
+.content h1:not(:first-child) {
+  color: #CCD5DE;
+}
+.content h1:first-child {
+  border-bottom-color: rgba(0,0,0,0.25);
+}
+.sidebar h4:first-child {
+  border-bottom-color: #1E1E1E;
+}
+
+
+.nav .nav-link.active, .nav .show > .nav-link {
+	color: var(--bs-nav-pills-link-active-color);
+	background-color: var(--bs-nav-pills-link-active-bg);
+}
