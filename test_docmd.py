@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(__file__))
 import docmd
 
 def create_test_tree(base_dir):
-    """Create a test directory structure with Markdown files."""
+    """ Create a test directory structure with Markdown files."""
     base_dir = Path(base_dir)
     base_dir.mkdir(parents=True, exist_ok=True)
     
@@ -106,7 +106,7 @@ def create_test_tree(base_dir):
     return [src1, src2]
 
 def check_generated_files(output_dir):
-    """Check the presence and validity of generated files."""
+    """ Check the presence and validity of generated files."""
     output_dir = Path(output_dir)
     expected_files = [
         "index.html",
@@ -143,7 +143,7 @@ class TestDocMD(unittest.TestCase):
             shutil.rmtree(self.test_dir)
 
     def test_generate_site(self):
-        """Test the full site generation."""
+        """ Test the full site generation."""
         docmd.generate_site()
         missing_files = check_generated_files(self.output_dir)
         self.assertEqual(len(missing_files), 0, f"Missing files: {missing_files}")
@@ -171,7 +171,7 @@ class TestDocMD(unittest.TestCase):
             self.assertIn('href="../../../module1/index.html"', content)
 
     def test_scan_markdown_files(self):
-        """Test the scan_markdown_files function."""
+        """ Test the scan_markdown_files function."""
         md_files, hierarchy = docmd.scan_markdown_files(self.include_paths, docmd.EXCLUDE_PATHS)
         
         expected_rel_paths = [
@@ -190,7 +190,7 @@ class TestDocMD(unittest.TestCase):
         self.assertNotIn("module3/index.html", hierarchy_paths)
 
     def test_convert_md_to_html(self):
-        """Test the conversion of a Markdown file to HTML."""
+        """ Test the conversion of a Markdown file to HTML."""
         md_file_info = {
             "file_path": self.test_dir / "src1/module1/doc.md",
             "rel_path": "module1/doc.html",

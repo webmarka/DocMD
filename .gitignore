@@ -4,3 +4,5 @@
 .env.stage
 *.bak
 src/
+__pycache__/
+docs/
