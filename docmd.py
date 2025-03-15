@@ -13,6 +13,7 @@ import jinja2
 import shutil
 from datetime import datetime
 from urllib.parse import quote
+import json
 
 # Environment setup
 debug = False
@@ -43,7 +44,7 @@ def clean_lang(lang_str):
 
 # Configuration
 LANG = clean_lang(os.environ.get("LANG", "en_US.UTF-8"))
-INCLUDE_PATHS = get_paths(os.environ.get("INCLUDE_PATHS", "src"))
+#INCLUDE_PATHS = get_paths(os.environ.get("INCLUDE_PATHS", "src"))
 EXCLUDE_PATHS = get_paths(os.environ.get("EXCLUDE_PATHS", ".git,.hg"))
 SAVE_DIR = Path(os.environ.get("SAVE_DIR", "docs"))
 OUTPUT_DIR = Path(os.environ.get("OUTPUT_DIR", "docs"))
@@ -67,18 +68,47 @@ USE_EXTERNAL_ASSETS = os.environ.get("USE_EXTERNAL_ASSETS", 'False')
 BS_CSS_URL = "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
 BS_CSS_PATH = 'static/css/bootstrap.min.css'
 
+# Utility to parse INCLUDE_PATHS as string or JSON list of dicts
+def parse_include_paths(env_value):
+    if not env_value:
+        return [{"path": "src", "name": "Source", "excludes": EXCLUDE_PATHS}]
+    try:
+        # Si c’est un JSON (liste de dicts)
+        parsed = json.loads(env_value)
+        if isinstance(parsed, list):
+            return [
+                {
+                    "path": p if isinstance(p, str) else p.get("path", "src"),
+                    "name": p.get("name", Path(p["path"]).name) if isinstance(p, dict) else Path(p).name,
+                    "excludes": get_paths(p.get("excludes", "")) if isinstance(p, dict) else EXCLUDE_PATHS
+                }
+                for p in parsed
+            ]
+    except json.JSONDecodeError:
+        # Si c’est une string simple (ancien format)
+        return [{"path": p, "name": Path(p).name, "excludes": EXCLUDE_PATHS} for p in get_config_array(env_value)]
+    return [{"path": "src", "name": "Source", "excludes": EXCLUDE_PATHS}]
+
+INCLUDE_PATHS = parse_include_paths(os.environ.get("INCLUDE_PATHS", "src"))
+
 # Check if a file path should be excluded
 def should_exclude(file_path, exclude_paths):
     """ Check if a file or folder should be excluded."""
     return any(excluded in file_path.parents or file_path == excluded for excluded in exclude_paths)
 
 # Scan for Markdown files and build hierarchy
-def scan_markdown_files(include_paths, exclude_paths):
-    """ Scan folders for Markdown files and return their metadata and folder hierarchy."""
+def scan_markdown_files(projects, global_exclude_paths):
     markdown_files = []
-    folders_with_md = []  # List to preserve order
-    
-    for base_path in include_paths:
+    folders_with_md = []
+    project_groups = {}  # Pour regrouper par projet dans la navigation
+
+    for project in projects:
+        base_path = Path(project["path"])
+        project_name = project["name"]
+        exclude_paths = project["excludes"] + global_exclude_paths
+        project_files = []
+        project_folders = []
+
         for root, _, files in os.walk(base_path):
             root_path = Path(root)
             has_md = False
@@ -88,55 +118,64 @@ def scan_markdown_files(include_paths, exclude_paths):
                     if not should_exclude(file_path, exclude_paths):
                         has_md = True
                         rel_path = file_path.relative_to(base_path).with_suffix(".html")
-                        markdown_files.append({
+                        project_files.append({
                             "file_path": file_path,
                             "rel_path": str(rel_path),
                             "title": file_path.stem,
-                            "parent": str(file_path.parent.relative_to(base_path)) if file_path.parent != base_path else None
+                            "parent": str(file_path.parent.relative_to(base_path)) if file_path.parent != base_path else None,
+                            "project": project_name
                         })
             if has_md:
                 current = root_path
                 while current != base_path.parent and current != current.parent:
                     rel_folder = str(current.relative_to(base_path))
-                    if rel_folder not in folders_with_md and rel_folder != ".":
-                        folders_with_md.append(rel_folder)
+                    if rel_folder not in project_folders and rel_folder != ".":
+                        project_folders.append(rel_folder)
                     current = current.parent
-    
-    # Build hierarchy with index pages for relevant folders
-    hierarchy = {}
-    for folder in sorted(folders_with_md):
-        folder_path = Path(folder) / "index.html"
-        hierarchy[str(folder_path)] = {
-            "title": folder.split('/')[-1] if folder else "Home",
-            "rel_path": str(folder_path),
-            "target_path": str(folder_path),
-            "sub_pages": [],
-            "is_folder": True
-        }
-    if any(not file["parent"] for file in markdown_files):
-        hierarchy["index.html"] = {
-            "title": "Home",
-            "rel_path": "index.html",
-            "target_path": "index.html",
-            "sub_pages": [],
-            "is_folder": True
-        }
-    
-    for file in markdown_files:
-        parent_key = str(Path(file["parent"] or "").joinpath("index.html")) if file["parent"] else "index.html"
-        filename = os.path.basename(file["file_path"])
-        if file["rel_path"] != parent_key:
-            hierarchy[parent_key]["sub_pages"].append({
-                "title": file["title"],
-                "rel_path": file["rel_path"],
-                "target_path": str(file["file_path"]),
-                "is_folder": False
-            })
-    
-    for page in hierarchy.values():
-        page["sub_pages"].sort(key=lambda x: x["rel_path"])
-    
-    return markdown_files, list(hierarchy.values())
+
+        # Construire la hiérarchie par projet
+        hierarchy = {}
+        for folder in sorted(project_folders):
+            folder_path = Path(folder) / "index.html"
+            hierarchy[str(folder_path)] = {
+                "title": folder.split('/')[-1] if folder else project_name,
+                "rel_path": str(folder_path),
+                "target_path": str(folder_path),
+                "sub_pages": [],
+                "is_folder": True,
+                "project": project_name
+            }
+        if any(not file["parent"] for file in project_files):
+            hierarchy["index.html"] = {
+                "title": project_name,
+                "rel_path": "index.html",
+                "target_path": "index.html",
+                "sub_pages": [],
+                "is_folder": True,
+                "project": project_name
+            }
+
+        for file in project_files:
+            parent_key = str(Path(file["parent"] or "").joinpath("index.html")) if file["parent"] else "index.html"
+            if file["rel_path"] != parent_key:
+                hierarchy[parent_key]["sub_pages"].append({
+                    "title": file["title"],
+                    "rel_path": file["rel_path"],
+                    "target_path": str(file["file_path"]),
+                    "is_folder": False,
+                    "project": project_name
+                })
+
+        for page in hierarchy.values():
+            page["sub_pages"].sort(key=lambda x: x["rel_path"])
+        project_groups[project_name] = list(hierarchy.values())
+        markdown_files.extend(project_files)
+
+    # Combiner toutes les hiérarchies pour la navigation globale
+    all_pages = []
+    for project_hierarchy in project_groups.values():
+        all_pages.extend(project_hierarchy)
+    return markdown_files, all_pages
 
 # Save a Markdown file to the output directory
 def save_md_file(md_file, save_dir, base_path):
@@ -304,50 +343,47 @@ def clean_dir(directory):
 
 # Main site generation function.
 def generate_site():
-    """ Generate the static site."""
-    global OUTPUT_DIR  # Déplacé en haut
-    # Validate and clean directories
+    global OUTPUT_DIR
     if not directory_security_check(OUTPUT_DIR):
-        print(f" Warning: OUTPUT_DIR '{OUTPUT_DIR}' is unsafe, resetting to 'docs'.")
+        print(f"Warning: OUTPUT_DIR '{OUTPUT_DIR}' is unsafe, resetting to 'docs'.")
         OUTPUT_DIR = Path("docs")
     
-    clean_dir(OUTPUT_DIR)  # Nettoie uniquement OUTPUT_DIR
+    clean_dir(OUTPUT_DIR)
     
-    # Use SAVE_DIR if specified and safe, otherwise use OUTPUT_DIR
     save_dir = OUTPUT_DIR
     if directory_security_check(SAVE_DIR) and SAVE_DIR != OUTPUT_DIR:
         clean_dir(SAVE_DIR)
         save_dir = SAVE_DIR
     
-    # Check if INCLUDE_PATHS exist
-    for path in INCLUDE_PATHS:
-        if not path.exists():
-            print(f" Error: Source path '{path}' does not exist.")
+    for project in INCLUDE_PATHS:
+        if not Path(project["path"]).exists():
+            print(f"Error: Source path '{project['path']}' does not exist.")
             return
     
     md_files, pages_hierarchy = scan_markdown_files(INCLUDE_PATHS, EXCLUDE_PATHS)
     if not md_files:
-        print(' Sources folders empty.')
+        print('Sources folders empty.')
         return
     
-    print("\n Copy MD files.")
+    print("\nCopy MD files.")
     for md_file in md_files:
-        base_path = next(bp for bp in INCLUDE_PATHS if md_file["file_path"].is_relative_to(bp))
+        base_path = next(bp["path"] for bp in INCLUDE_PATHS if md_file["file_path"].is_relative_to(bp["path"]))
         save_md_file(md_file["file_path"], save_dir, base_path)
     
-    print("\n Write HTML files.")
+    print("\nWrite HTML files.")
     for md_file in md_files:
-        base_path = next(bp for bp in INCLUDE_PATHS if md_file["file_path"].is_relative_to(bp))
+        base_path = next(bp["path"] for bp in INCLUDE_PATHS if md_file["file_path"].is_relative_to(bp["path"]))
         convert_md_to_html(md_file, OUTPUT_DIR, pages_hierarchy, base_path)
     
-    print("\n Generate folder indexes.")
+    print("\nGenerate folder indexes.")
     for page in pages_hierarchy:
+        base_path = next(bp["path"] for bp in INCLUDE_PATHS if Path(page["target_path"]).is_relative_to(bp["path"]))
         folder_path = Path(page["rel_path"]).parent
         generate_folder_index(folder_path, OUTPUT_DIR, pages_hierarchy, page["sub_pages"], base_path)
     
-    print("\n Copy the static assets folder.")
-    #assets_path = get_relative_path(ASSETS_PATH, save_dir)
-    #assets_path = docmd.get_relative_path('../static/css/', 'src/')
+    print("\nCopy the static assets folder.")
+    if os.path.exists(f"{save_dir}/static"):
+        shutil.rmtree(f"{save_dir}/static")
     shutil.copytree("./static", f"{save_dir}/static")
 
 # Main function

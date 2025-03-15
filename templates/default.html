@@ -31,29 +31,28 @@
 </head>
 <body>
   <main>
-    <div class="sidebar">
-        <h4 class="px-3">{{ nav_title }}</h4>
-        <ul class="nav flex-column">
-            {% for page in pages %}
-                <li class="nav-item">
-                    <a class="nav-link{% if page.target_path == current_page %} active{% endif %}" href="{{ page.rel_path | urlencode }}">
-                        {% if page.is_folder %}<strong>{{ page.title }}</strong>{% else %}{{ page.title }}{% endif %}
-                    </a>
-                    {% if page.sub_pages %}
-                        <ul class="nav flex-column nav-nested">
-                            {% for sub_page in page.sub_pages %}
-                                <li class="nav-item">
-                                    <a class="nav-link{% if sub_page.target_path == current_page %} active{% endif %}" href="{{ sub_page.rel_path | urlencode }}">
-                                        {% if sub_page.is_folder %}<strong>{{ sub_page.title }}</strong>{% else %}{{ sub_page.title }}{% endif %}
-                                    </a>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% endif %}
-                </li>
-            {% endfor %}
-        </ul>
-    </div>
+    <nav class="sidebar">
+        {% for project, pages in pages | groupby('project') %}
+            <h3>{{ project }}</h3>
+            <ul>
+                {% for page in pages %}
+                    <li {% if page.rel_path == current_page %}class="active"{% endif %}>
+                        <a href="{{ page.rel_path | urlencode }}">{{ page.title }}</a>
+                        {% if page.sub_pages %}
+                            <ul>
+                                {% for sub in page.sub_pages %}
+                                    <li {% if sub.rel_path == current_page %}class="active"{% endif %}>
+                                        <a href="{{ sub.rel_path | urlencode }}">{{ sub.title }}</a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+            <hr class="project-separator">
+        {% endfor %}
+    </nav>
     <div class="content">
         <h1>{{ title }}</h1>
         {{ content | safe }}

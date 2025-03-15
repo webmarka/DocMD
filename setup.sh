@@ -15,6 +15,13 @@ echo
 echo " Version: 0.0.3 "
 echo
 
+# Check if virtual env still exists.
+if [ -n "$VIRTUAL_ENV" ] && [ ! -d "$VIRTUAL_ENV" ]; then
+    echo " Warning: Current virtual environment ($VIRTUAL_ENV) is invalid. Deactivating..."
+    echo
+    deactivate
+fi
+
 # Script params.
 #echo
 echo " Script params."
