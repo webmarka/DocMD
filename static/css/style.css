@@ -4,20 +4,22 @@
 
 main {
     height: 90vh;
+    display: flex;
+    width: 100%;
 }
 .sidebar {
-    height: 90vh;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 250px;
-    padding-top: 20px;
-    border-right: 1px solid;
-    overflow-y: auto;
+	height: 90vh;
+	padding: 20px 5px;
+	border-right: 1px solid;
+	overflow-y: auto;
+	flex-basis: 25vw;
+	min-width: 25vw;
+  width: 25vw;
 }
 .content {
-    margin-left: 270px;
+    flex-grow: 4;
     padding: 20px;
+    overflow-y: scroll;
 }
 footer {
     height: 10vh;
@@ -39,9 +41,18 @@ h2, h3, h4, h5, h6 {
   border-bottom: 1px solid;
   padding-bottom: 10px;
 }
-.sidebar h4:first-child {
+.sidebar h2:first-child {
   color: inherit;
   padding-top: 8px;
   padding-bottom: 18px;
   border-bottom: 1px solid;
+}
+.sidebar h3 {
+}
+
+.sidebar .nav-link {
+  padding: 1px 16px; 
+}
+.nav-item .nav-item .nav-link {
+  padding-left: 0;
 }

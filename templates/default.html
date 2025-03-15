@@ -32,17 +32,22 @@
 <body>
   <main>
     <nav class="sidebar">
+        <h2 class="px-3">{{ nav_title }}</h2>
         {% for project, pages in pages | groupby('project') %}
-            <h3>{{ project }}</h3>
-            <ul>
+            <h3 class="px-3">{{ project }}</h3>
+            <ul class="nav flex-column">
                 {% for page in pages %}
-                    <li {% if page.rel_path == current_page %}class="active"{% endif %}>
-                        <a href="{{ page.rel_path | urlencode }}">{{ page.title }}</a>
+                    <li  class="nav-item{% if page.rel_path == current_page %} active{% endif %}">
+                        <a class="nav-link{% if page.target_path == current_page %} active{% endif %}" href="{{ page.rel_path | urlencode }}">
+                            {% if page.is_folder %}<strong>{{ page.title }}</strong>{% else %}{{ page.title }}{% endif %}
+                        </a>
                         {% if page.sub_pages %}
                             <ul>
                                 {% for sub in page.sub_pages %}
-                                    <li {% if sub.rel_path == current_page %}class="active"{% endif %}>
-                                        <a href="{{ sub.rel_path | urlencode }}">{{ sub.title }}</a>
+                                    <li class="nav-item{% if sub.rel_path == current_page %} active{% endif %}">
+                                        <a class="nav-link{% if sub.target_path == current_page %} active{% endif %}" href="{{ sub.rel_path | urlencode }}">
+                                            {% if sub.is_folder %}<strong>{{ sub.title }}</strong>{% else %}{{ sub.title }}{% endif %}
+                                        </a>
                                     </li>
                                 {% endfor %}
                             </ul>

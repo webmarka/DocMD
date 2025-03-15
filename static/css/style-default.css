@@ -25,6 +25,6 @@ h2, h3, h4, h5, h6 {
 .content h1:first-child {
   border-bottom-color: #dee2e6;
 }
-.sidebar h4:first-child {
+.sidebar h2:first-child {
   border-bottom-color: #dee2e6;
 }

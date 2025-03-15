@@ -100,7 +100,7 @@ def should_exclude(file_path, exclude_paths):
 def scan_markdown_files(projects, global_exclude_paths):
     markdown_files = []
     folders_with_md = []
-    project_groups = {}  # Pour regrouper par projet dans la navigation
+    project_groups = {}
 
     for project in projects:
         base_path = Path(project["path"])
@@ -140,7 +140,7 @@ def scan_markdown_files(projects, global_exclude_paths):
             hierarchy[str(folder_path)] = {
                 "title": folder.split('/')[-1] if folder else project_name,
                 "rel_path": str(folder_path),
-                "target_path": str(folder_path),
+                "target_path": str(base_path / folder),  # Chemin absolu basé sur base_path
                 "sub_pages": [],
                 "is_folder": True,
                 "project": project_name
@@ -149,7 +149,7 @@ def scan_markdown_files(projects, global_exclude_paths):
             hierarchy["index.html"] = {
                 "title": project_name,
                 "rel_path": "index.html",
-                "target_path": "index.html",
+                "target_path": str(base_path),  # Chemin absolu de la racine du projet
                 "sub_pages": [],
                 "is_folder": True,
                 "project": project_name
@@ -161,7 +161,7 @@ def scan_markdown_files(projects, global_exclude_paths):
                 hierarchy[parent_key]["sub_pages"].append({
                     "title": file["title"],
                     "rel_path": file["rel_path"],
-                    "target_path": str(file["file_path"]),
+                    "target_path": str(file["file_path"]),  # Chemin absolu du fichier
                     "is_folder": False,
                     "project": project_name
                 })
@@ -171,7 +171,6 @@ def scan_markdown_files(projects, global_exclude_paths):
         project_groups[project_name] = list(hierarchy.values())
         markdown_files.extend(project_files)
 
-    # Combiner toutes les hiérarchies pour la navigation globale
     all_pages = []
     for project_hierarchy in project_groups.values():
         all_pages.extend(project_hierarchy)
@@ -377,7 +376,12 @@ def generate_site():
     
     print("\nGenerate folder indexes.")
     for page in pages_hierarchy:
-        base_path = next(bp["path"] for bp in INCLUDE_PATHS if Path(page["target_path"]).is_relative_to(bp["path"]))
+        try:
+            base_path = next(bp["path"] for bp in INCLUDE_PATHS if Path(page["target_path"]).is_relative_to(bp["path"]))
+        except StopIteration:
+            # Fallback si aucun projet ne correspond (cas rare)
+            base_path = Path(INCLUDE_PATHS[0]["path"])
+            print(f"Warning: Could not determine base_path for {page['target_path']}, using {base_path}")
         folder_path = Path(page["rel_path"]).parent
         generate_folder_index(folder_path, OUTPUT_DIR, pages_hierarchy, page["sub_pages"], base_path)
     
