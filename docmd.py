@@ -16,14 +16,12 @@ from urllib.parse import quote
 import json
 
 # Environment setup
-debug = False
 load_dotenv()
 ENV = os.environ.get("ENV", "prod")
 if ENV == "prod":
     load_dotenv(".env.prod")
 elif ENV == "dev":
     load_dotenv(".env.dev")
-    debug = True
 
 # Utility to convert comma-separated string to a list of Path objects
 def get_paths(string):
@@ -51,8 +49,14 @@ def has_active_subpage(sub_pages, current_page):
 
 JINJA_ENV.filters['has_active_subpage'] = has_active_subpage
 
+def get_debug_status():
+  debug_default = True if ENV == "dev" else False
+  debug = os.environ.get("DEBUG", debug_default)
+  return  False if debug == 'False' else bool(debug)
+
 # Configuration
 LANG = clean_lang(os.environ.get("LANG", "en_US.UTF-8"))
+debug = get_debug_status()
 #INCLUDE_PATHS = get_paths(os.environ.get("INCLUDE_PATHS", "src"))
 EXCLUDE_PATHS = get_paths(os.environ.get("EXCLUDE_PATHS", ".git,.hg"))
 SAVE_DIR = Path(os.environ.get("SAVE_DIR", "docs"))
@@ -209,9 +213,9 @@ def convert_md_to_html(md_file_info, output_dir, all_pages, base_path):
     output_file = output_subdir / (md_file.stem + ".html")
     current_page = md_file_info["rel_path"]
     current_dir = os.path.dirname(current_page) or "."
-    adjusted_pages = get_pages_links(current_dir, all_pages, base_path)
-    print(f"convert_md_to_html: current_page={current_page}, adjusted_pages={[p['rel_path'] for p in adjusted_pages]}")
-    title=md_file_info["title"]
+    adjusted_pages = get_pages_links(current_dir, all_pages, base_path, current_page)  # Ajout de current_page
+    if debug: print(f"convert_md_to_html: current_page={current_page}, , current_dir={current_dir}, adjusted_pages={[p['rel_path'] for p in adjusted_pages]}")
+    title = md_file_info["title"]
     css_path = get_relative_path(CSS_PATH, current_dir)
     theme_css_path = get_theme_css_path(current_dir)
     assets_path = get_relative_path(ASSETS_PATH, current_dir)
@@ -230,8 +234,8 @@ def generate_folder_index(folder_path, output_dir, all_pages, sub_pages, base_pa
     output_file.parent.mkdir(parents=True, exist_ok=True)
     current_page = str(folder_path / "index.html" if folder_path.name else "index.html")
     current_dir = os.path.dirname(current_page) or "."
-    adjusted_pages = get_pages_links(current_dir, all_pages, base_path)
-    print(f"generate_folder_index: current_page={current_page}, adjusted_pages={[p['rel_path'] for p in adjusted_pages]}")
+    adjusted_pages = get_pages_links(current_dir, all_pages, base_path, current_page)  # Ajout de current_page
+    if debug: print(f"generate_folder_index: current_page={current_page}, current_dir={current_dir}, adjusted_pages={[p['rel_path'] for p in adjusted_pages]}")
     title = folder_path.name if folder_path.name else "Home"
     css_path = get_relative_path(CSS_PATH, current_dir)
     theme_css_path = get_theme_css_path(current_dir)
@@ -239,8 +243,7 @@ def generate_folder_index(folder_path, output_dir, all_pages, sub_pages, base_pa
     bs_css_path = get_relative_path(BS_CSS_PATH, current_dir)
     bs_css_path = BS_CSS_URL if USE_EXTERNAL_ASSETS != 'False' else bs_css_path
     
-    if debug:
-        print(f" Generating index for {folder_path}, current_page: {current_page}, sub_pages: {sub_pages}")
+    if debug: print(f" Generating index for {folder_path}, current_page: {current_page}, sub_pages: {sub_pages}")
     
     content = f"<h2>{title}</h2><ul>"
     for sub_page in sub_pages:
@@ -280,22 +283,33 @@ def generate_page(current_page, title, content, output_file, pages, css_path, th
         f.write(html_output)
     print(f" Generated: {output_file}")
 
-def get_pages_links(current_dir, all_pages, base_path):
+def get_pages_links(current_dir, all_pages, base_path, current_page):
+    if debug: print(f"get_pages_links: current_dir={current_dir}, current_page={current_page}")
     pages = []
+    current_page_full = str(current_page)  # Pas besoin de Path(current_dir) / current_page
+    if debug: print(f"current_page_full={current_page_full}")
     for page in all_pages:
         page = page.copy()
         page["ref_path"] = page["rel_path"]
         page["rel_path"] = get_relative_path(page["rel_path"], current_dir)
+        page["is_current"] = page["ref_path"] == current_page_full
+        page["is_active"] = page["is_current"] or any(
+            sub["rel_path"] == current_page_full for sub in page["sub_pages"]
+        )
+        if debug: print(f"page: ref_path={page['ref_path']}, is_current={page['is_current']}, is_active={page['is_active']}, sub_pages={[sub['rel_path'] for sub in page['sub_pages']]}")
         page["sub_pages"] = [
-            {**sub, 
-              "ref_path": sub["rel_path"],
-              "rel_path": get_relative_path(sub["rel_path"], current_dir), 
-              "target_path": get_relative_path(sub["target_path"], base_path).replace(".md", ".html")
+            {**sub,
+             "ref_path": sub["rel_path"],
+             "rel_path": get_relative_path(sub["rel_path"], current_dir),
+             "target_path": get_relative_path(sub["target_path"], base_path).replace(".md", ".html"),
+             "is_current": sub["rel_path"] == current_page_full,
+             "is_active": sub["rel_path"] == current_page_full
             }
             for sub in page["sub_pages"]
         ]
+        for sub in page["sub_pages"]:
+            if debug: print(f"sub_page: ref_path={sub['ref_path']}, is_current={sub['is_current']}, is_active={sub['is_active']}")
         pages.append(page)
-    
     return pages
 
 # Get relative path from current directory.

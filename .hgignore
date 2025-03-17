@@ -7,3 +7,4 @@ syntax: glob
 src/
 __pycache__/
 docs/
+test.py

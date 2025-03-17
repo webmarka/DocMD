@@ -4,6 +4,7 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch, mock_open
 import sys
+from jinja2 import Environment, FileSystemLoader
 
 sys.path.append(os.path.dirname(__file__))
 import docmd
@@ -137,7 +138,10 @@ class TestDocMD(unittest.TestCase):
         docmd.INCLUDE_PATHS = self.include_paths
         docmd.OUTPUT_DIR = self.output_dir
         docmd.SAVE_DIR = self.output_dir
-        docmd.TEMPLATE = "default.html"
+        docmd.TEMPLATE = "tests/templates/test_default.html"
+        env = Environment(loader=FileSystemLoader("."))
+        docmd.JINJA_ENV = env
+        docmd.JINJA_ENV.filters['has_active_subpage'] = docmd.has_active_subpage
 
     def tearDown(self):
         if self.test_dir.exists():
@@ -226,40 +230,41 @@ class TestDocMD(unittest.TestCase):
                     app_version=docmd.APP_VERSION
                 )
 
-    def test_navigation_active_state(self):
-        """ Test that navigation correctly marks active pages and parents."""
-        docmd.generate_site()
-        
-        # Test root page (readme.html from src1)
-        with open(self.output_dir / "readme.html", "r", encoding="utf-8") as f:
-            content = f.read()
-            self.assertIn('class="nav-item active"', content)  # <li> actif
-            self.assertIn('class="nav-link active" href="readme.html"', content)  # <a> actif
-            self.assertIn('readme', content)
-            self.assertIn('Source1', content)
-            self.assertIn('Source2', content)
-            self.assertNotIn('class="nav-link active" href="module1/index.html"', content)  # module1 ne doit pas être actif
+def test_navigation_active_state(self):
+    docmd.generate_site()
+    # Test root page (readme.html from src1)
+    with open(self.output_dir / "readme.html", "r", encoding="utf-8") as f:
+        content = f.read()
+        self.assertIn('class="nav-item current"', content)  # <li> courant
+        self.assertIn('class="nav-link current" href="readme.html"', content)  # <a> courant
+        self.assertIn('readme', content)
+        self.assertIn('Source1', content)
+        self.assertIn('Source2', content)
+        self.assertNotIn('class="nav-link current" href="module1/index.html"', content)  # module1 ne doit pas être courant
 
-        # Test nested page (module1/doc.html from src1)
-        with open(self.output_dir / "module1/doc.html", "r", encoding="utf-8") as f:
-            content = f.read()
-            self.assertIn('class="nav-item active"', content)  # <li> actif pour doc
-            self.assertIn('href="index.html"', content)  # Lien vers parent
-            self.assertIn('class="nav-link active" href="doc.html"', content)  # <a> actif
-            self.assertNotIn('class="nav-link active" href="../readme.html"', content)  # readme ne doit pas être actif
+    # Test nested page (module1/doc.html from src1)
+    with open(self.output_dir / "module1/doc.html", "r", encoding="utf-8") as f:
+        content = f.read()
+        self.assertIn('class="nav-item current"', content)  # <li> courant
+        self.assertIn('href="index.html"', content)  # Lien vers parent
+        self.assertIn('class="nav-link current" href="doc.html"', content)  # <a> courant
+        self.assertIn('class="nav-link active" href="index.html"', content)  # Parent actif
+        self.assertNotIn('class="nav-link current" href="../readme.html"', content)  # readme ne doit pas être courant
 
-        # Test deep nested page (module2/Sujet/Sous-sujet/deep.html from src1)
-        with open(self.output_dir / "module2/Sujet/Sous-sujet/deep.html", "r", encoding="utf-8") as f:
-            content = f.read()
-            #self.assertIn('class="nav-link active" href="../../../module2/index.html"', content)  # Parent actif
-            #self.assertIn('class="nav-link active" href="../index.html"', content)  # Grand-parent actif
-            self.assertIn('class="nav-link active" href="deep.html"', content)  # Page courante active
+    # Test deep nested page (module2/Sujet/Sous-sujet/deep.html from src1)
+    with open(self.output_dir / "module2/Sujet/Sous-sujet/deep.html", "r", encoding="utf-8") as f:
+        content = f.read()
+        self.assertIn('class="nav-link active" href="../../../module2/index.html"', content)  # Parent actif
+        self.assertIn('class="nav-link active" href="../index.html"', content)  # Grand-parent actif
+        self.assertIn('class="nav-link current" href="deep.html"', content)  # Page courante
+        self.assertNotIn('class="nav-link current" href="../../../module2/index.html"', content)  # Pas courant
+        self.assertNotIn('class="nav-link current" href="../index.html"', content)  # Pas courant
 
-        # Test page from src2 (extra.html)
-        with open(self.output_dir / "extra.html", "r", encoding="utf-8") as f:
-            content = f.read()
-            self.assertIn('class="nav-link active" href="extra.html"', content)  # <a> actif
-            self.assertNotIn('class="nav-link active" href="module1/index.html"', content)  # module1 ne doit pas être actif
+    # Test page from src2 (extra.html)
+    with open(self.output_dir / "extra.html", "r", encoding="utf-8") as f:
+        content = f.read()
+        self.assertIn('class="nav-link current" href="extra.html"', content)  # <a> courant
+        self.assertNotIn('class="nav-link current" href="module1/index.html"', content)  # module1 ne doit pas être courant
 
 if __name__ == "__main__":
     unittest.main()

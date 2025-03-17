@@ -37,8 +37,10 @@ h2, h3, h4, h5, h6 {
   border-bottom-color: #1E1E1E;
 }
 
-
 .nav .nav-link.active, .nav .show > .nav-link {
 	color: var(--bs-nav-pills-link-active-color);
 	background-color: var(--bs-nav-pills-link-active-bg);
+}
+.nav .nav-link.current, .nav .current > .nav-link {
+	color: #FCFCFC;
 }

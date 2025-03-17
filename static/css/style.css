@@ -57,14 +57,15 @@ h2, h3, h4, h5, h6 {
   padding-left: 0;
 }
 .sidebar .nav-item.active > a {
-/*
-    font-weight: bold;
-    color: #007bff;
-    background-color: #f8f9fa;
-*/
 }
 .sidebar .nav-item.active .nav-link {
-/*
-    color: #007bff;
-*/
+}
+.sidebar .nav-link.active {
+}
+.sidebar .nav-link.current {
+}
+
+.nav .nav-link.active, .nav .show > .nav-link {
+}
+.nav .nav-link.current, .nav .current > .nav-link {
 }
