@@ -16,15 +16,31 @@ footer {
 .nav-nested {
 }
 
+.content header {
+}
 h2, h3, h4, h5, h6 {
   color: #595959;
 }
 .content h1:not(:first-child) {
   color: #595959;
 }
-.content h1:first-child {
+.content header, .content h1:first-child {
   border-bottom-color: #dee2e6;
 }
-.sidebar h4:first-child {
+.sidebar header {
   border-bottom-color: #dee2e6;
+}
+.sidebar h2:first-child {
+  color: #464646;
+}
+.sidebar h3 {
+  color: #616161;
+}
+
+.nav .nav-link.active, .nav .show > .nav-link {
+  color: var(--bs-nav-pills-link-active-color);
+  background-color: var(--bs-nav-pills-link-active-bg);
+}
+.nav .nav-link.current, .nav .current > .nav-link {
+  color: #1A1A1A;
 }

@@ -4,7 +4,7 @@
 
 ## Version
 
-- **0.0.3** (March 2025) - Customizations, themes and dark mode.
+- **0.0.4** (March 2025) - Implement new ideas for the navigation and projects management. 
 
 ## Features
 
@@ -49,6 +49,10 @@
     NAV_TITLE=Documentation
     THEME=default
     USE_EXTERNAL_ASSETS=False
+    ROOT_INDEX_TITLE = "Documentation Home"
+    ROOT_INDEX_SUB_TITLE = "Welcome to the Documentation"
+    ROOT_INDEX_PROJECT_NAME = "Root"
+    DEBUG=False
 
 **Run the setup and generation script:**
 
@@ -86,6 +90,7 @@ On the first run, you may need to install some packages et the Python environmen
 
 ## Changelog
 
+- **0.0.4** (March 2025) - Implement new ideas for the navigation and projects management. 
 - **0.0.3** (March 2025) - Customizations, themes and dark mode.
 - **0.0.2** (March 2025) - Improved navigation, robust unit tests, folder index page generation.
 - **0.0.1** (March 2025) - First proof-of-concept version.

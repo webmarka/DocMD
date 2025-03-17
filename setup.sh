@@ -1,6 +1,6 @@
 #!/bin/bash
 # DocMD Setup
-# Version: 0.0.3
+# Version: 0.0.4
 # Authors: webmarka
 # 2025-03-14 (v0.0.3) - Added security checks.
 # Usage: source ./setup.sh or ./setup.sh
@@ -12,8 +12,15 @@ echo -e " ######################################################################
 echo
 
 # Version.
-echo " Version: 0.0.3 "
+echo " Version: 0.0.4 "
 echo
+
+# Check if virtual env still exists.
+if [ -n "$VIRTUAL_ENV" ] && [ ! -d "$VIRTUAL_ENV" ]; then
+    echo " Warning: Current virtual environment ($VIRTUAL_ENV) is invalid. Deactivating..."
+    echo
+    deactivate
+fi
 
 # Script params.
 #echo
