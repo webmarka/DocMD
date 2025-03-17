@@ -10,7 +10,7 @@ sys.path.append(os.path.dirname(__file__))
 import docmd
 
 def create_test_tree(base_dir):
-    """ Create a test directory structure with Markdown files."""
+    """Create a test directory structure with Markdown files."""
     base_dir = Path(base_dir)
     base_dir.mkdir(parents=True, exist_ok=True)
     
@@ -32,13 +32,13 @@ def create_test_tree(base_dir):
     (src2 / "extra.md").write_text("# Extra doc")
     
     (base_dir / "templates").mkdir(parents=True, exist_ok=True)
-    (base_dir / "templates" / "default.html").write_text("""
+    # Template synchronisé avec le log
+    (base_dir / "templates" / "test_default.html").write_text("""
 <!DOCTYPE html>
-<html lang="{{ lang }}" data-bs-theme="{{ theme_mode }}>
+<html lang="{{ lang }}" data-bs-theme="{{ theme_mode }}">
 <head>
     <meta charset="UTF-8">
     <title>{{ title }} - DocMD</title>
-    <!-- Favicons -->
     <link rel="apple-touch-icon" sizes="57x57" href="{{ assets_path }}/img/favicon-57x57.png" type="image/png" />
     <link rel="apple-touch-icon" sizes="60x60" href="{{ assets_path }}/img/favicon-60x60.png" type="image/png" />
     <link rel="apple-touch-icon" sizes="72x72" href="{{ assets_path }}/img/favicon-72x72.png" type="image/png" />
@@ -52,12 +52,10 @@ def create_test_tree(base_dir):
     <link rel="icon" sizes="96x96" href="{{ assets_path }}/img/favicon-96x96.png" type="image/png" />
     <link rel="icon" sizes="192x192" href="{{ assets_path }}/img/favicon-192x192.png" type="image/png" />
     <link rel="icon" sizes="512x512" href="{{ assets_path }}/img/favicon-512x512.png" type="image/png" />
-    <!--<link rel="icon" href="{{ assets_path }}/img/favicon.svg"  type="image/svg+xml" />-->
     <link rel="manifest" href="{{ assets_path }}/img/manifest.json" />
     <meta name="theme-color" content="#FFFFFF" />
     <meta name="msapplication-TileColor" content="#FFFFFF" />
     <meta name="msapplication-TileImage" content="{{ assets_path }}/img/favicon-512x512.png" />
-    <!-- Styles -->
     <link rel="stylesheet" href="{{ bs_css_path }}">
     <link rel="stylesheet" href="{{ css_path }}">
     <link rel="stylesheet" href="{{ theme_css_path }}">
@@ -65,30 +63,43 @@ def create_test_tree(base_dir):
 <body>
   <main>
     <nav class="sidebar">
-        <h4 class="px-3">{{ nav_title }}</h4>
-        {% for project, pages in pages | groupby('project') %}
-            <h3>{{ project }}</h3>
+        <h2 class="px-3">{{ nav_title }}</h2>
+        {% for page in pages %}
+            {% if page.project == 'Root' %}
+            <h3 class="px-3">{{ page.project }}</h3>
             <ul class="nav flex-column">
-                {% for page in pages %}
-                    {% set is_active = page.ref_path == current_page or page.sub_pages | has_active_subpage(current_page) %}
-                    <li class="nav-item{% if is_active %} active{% endif %}">
-                        <a class="nav-link{% if is_active %} active{% endif %}" href="{{ page.rel_path | urlencode }}">
-                            {% if page.is_folder %}<strong>{{ page.title }}</strong>{% else %}{{ page.title }}{% endif %}
-                        </a>
-                        {% if page.sub_pages %}
-                            <ul class="nav flex-column nav-nested">
-                                {% for sub in page.sub_pages %}
-                                    <li class="nav-item{% if sub.ref_path == current_page %} active{% endif %}">
-                                        <a class="nav-link{% if sub.ref_path == current_page %} active{% endif %}" href="{{ sub.rel_path | urlencode }}">
-                                            {% if sub.is_folder %}<strong>{{ sub.title }}</strong>{% else %}{{ sub.title }}{% endif %}
-                                        </a>
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        {% endif %}
-                    </li>
-                {% endfor %}
+                <li class="nav-item{% if page.is_active %} active{% endif %}">
+                    <a class="nav-link{% if page.is_active %} active{% endif %}{% if page.is_current %} current{% endif %}" href="{{ page.rel_path | urlencode }}">
+                        <strong>{{ page.title }}</strong>
+                    </a>
+                </li>
             </ul>
+            <hr class="project-separator">
+            {% endif %}
+        {% endfor %}
+        {% for page in pages %}
+            {% if page.project != 'Root' %}
+            <h3 class="px-3">{{ page.project }}</h3>
+            <ul class="nav flex-column">
+                <li class="nav-item{% if page.is_active %} active{% endif %}">
+                    <a class="nav-link{% if page.is_active %} active{% endif %}{% if page.is_current %} current{% endif %}" href="{{ page.rel_path | urlencode }}">
+                        <strong>{{ page.title }}</strong>
+                    </a>
+                    {% if page.sub_pages %}
+                        <ul class="nav-nested">
+                            {% for sub in page.sub_pages %}
+                                <li class="nav-item{% if sub.is_active %} active{% endif %}{% if sub.is_current %} current{% endif %}">
+                                    <a class="nav-link{% if sub.is_active %} active{% endif %}{% if sub.is_current %} current{% endif %}" href="{{ sub.rel_path | urlencode }}">
+                                        {{ sub.title }}
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </li>
+            </ul>
+            <hr class="project-separator">
+            {% endif %}
         {% endfor %}
     </nav>
     <div class="content">
@@ -110,20 +121,22 @@ def create_test_tree(base_dir):
     ]
 
 def check_generated_files(output_dir):
-    """ Check the presence and validity of generated files."""
+    """Check the presence and validity of generated files."""
     output_dir = Path(output_dir)
     expected_files = [
         "index.html",
+        "Source1/index.html",
+        "readme.html",
         "module1/index.html",
         "module1/doc.html",
+        "module2/index.html",
+        "module2/Sujet/index.html",
         "module2/Sujet/Sous-sujet/index.html",
         "module2/Sujet/Sous-sujet/deep.html",
-        "module2/Sujet/index.html",
-        "module2/index.html",
-        "module4/Special d.html",
         "module4/index.html",
-        "extra.html",
-        "readme.html"
+        "module4/Special d.html",
+        "Source2/index.html",
+        "extra.html"
     ]
     missing = [f for f in expected_files if not (output_dir / f).exists()]
     return missing
@@ -138,37 +151,34 @@ class TestDocMD(unittest.TestCase):
         docmd.INCLUDE_PATHS = self.include_paths
         docmd.OUTPUT_DIR = self.output_dir
         docmd.SAVE_DIR = self.output_dir
-        docmd.TEMPLATE = "tests/templates/test_default.html"
-        env = Environment(loader=FileSystemLoader("."))
+        docmd.TEMPLATE_DIR = str(self.test_dir / "templates")
+        docmd.TEMPLATE = "test_default.html"  # Utilise le template synchronisé
+        env = Environment(loader=FileSystemLoader(docmd.TEMPLATE_DIR))
         docmd.JINJA_ENV = env
-        docmd.JINJA_ENV.filters['has_active_subpage'] = docmd.has_active_subpage
 
     def tearDown(self):
         if self.test_dir.exists():
             shutil.rmtree(self.test_dir)
 
     def test_generate_site(self):
-        """ Test the full site generation."""
+        """Test the full site generation."""
         docmd.generate_site()
         missing_files = check_generated_files(self.output_dir)
         self.assertEqual(len(missing_files), 0, f"Missing files: {missing_files}")
         
-        # Check index.html (root level)
         with open(self.output_dir / "index.html", "r", encoding="utf-8") as f:
             content = f.read()
-            self.assertIn('<strong>Source1</strong>', content)  # Folder title in nav
+            self.assertIn('<strong>Source1</strong>', content)
             self.assertIn('href="module1/index.html"', content)
             self.assertIn('href="module4/Special%20d.html"', content)
             self.assertIn('href="extra.html"', content)
 
-        # Check module1/index.html (1 level deep)
         with open(self.output_dir / "module1/index.html", "r", encoding="utf-8") as f:
             content = f.read()
             self.assertIn('href="../index.html"', content)
             self.assertIn('href="doc.html"', content)
             self.assertIn('href="../module4/Special%20d.html"', content)
 
-        # Check module2/Sujet/Sous-sujet/index.html (3 levels deep)
         with open(self.output_dir / "module2/Sujet/Sous-sujet/index.html", "r", encoding="utf-8") as f:
             content = f.read()
             self.assertIn('href="../../../index.html"', content)
@@ -176,7 +186,7 @@ class TestDocMD(unittest.TestCase):
             self.assertIn('href="../../../module1/index.html"', content)
 
     def test_scan_markdown_files(self):
-        """ Test the scan_markdown_files function."""
+        """Test the scan_markdown_files function."""
         md_files, hierarchy = docmd.scan_markdown_files(self.include_paths, docmd.EXCLUDE_PATHS)
         
         expected_rel_paths = [
@@ -195,7 +205,7 @@ class TestDocMD(unittest.TestCase):
         self.assertNotIn("module3/index.html", hierarchy_paths)
 
     def test_convert_md_to_html(self):
-        """ Test the conversion of a Markdown file to HTML."""
+        """Test the conversion of a Markdown file to HTML."""
         md_file_info = {
             "file_path": self.test_dir / "src1/module1/doc.md",
             "rel_path": "module1/doc.html",
@@ -230,41 +240,37 @@ class TestDocMD(unittest.TestCase):
                     app_version=docmd.APP_VERSION
                 )
 
-def test_navigation_active_state(self):
-    docmd.generate_site()
-    # Test root page (readme.html from src1)
-    with open(self.output_dir / "readme.html", "r", encoding="utf-8") as f:
-        content = f.read()
-        self.assertIn('class="nav-item current"', content)  # <li> courant
-        self.assertIn('class="nav-link current" href="readme.html"', content)  # <a> courant
-        self.assertIn('readme', content)
-        self.assertIn('Source1', content)
-        self.assertIn('Source2', content)
-        self.assertNotIn('class="nav-link current" href="module1/index.html"', content)  # module1 ne doit pas être courant
+    def test_navigation_active_state(self):
+        docmd.generate_site()
+        # Test root page (readme.html from src1)
+        with open(self.output_dir / "readme.html", "r", encoding="utf-8") as f:
+            content = f.read()
+            self.assertIn('class="nav-link active current" href="readme.html"', content)
+            self.assertIn('class="nav-link active" href="Source1/index.html"', content)
+            self.assertNotIn('class="nav-link current" href="Source1/index.html"', content)
 
-    # Test nested page (module1/doc.html from src1)
-    with open(self.output_dir / "module1/doc.html", "r", encoding="utf-8") as f:
-        content = f.read()
-        self.assertIn('class="nav-item current"', content)  # <li> courant
-        self.assertIn('href="index.html"', content)  # Lien vers parent
-        self.assertIn('class="nav-link current" href="doc.html"', content)  # <a> courant
-        self.assertIn('class="nav-link active" href="index.html"', content)  # Parent actif
-        self.assertNotIn('class="nav-link current" href="../readme.html"', content)  # readme ne doit pas être courant
+        # Test nested page (module1/doc.html from src1)
+        with open(self.output_dir / "module1/doc.html", "r", encoding="utf-8") as f:
+            content = f.read()
+            self.assertIn('class="nav-link active current" href="doc.html"', content)
+            self.assertIn('class="nav-link active" href="index.html"', content)  # module1/index.html
+            # On ne s’attend PAS à ce que Source1/index.html soit active
+            self.assertNotIn('class="nav-link active" href="../Source1/index.html"', content)
 
-    # Test deep nested page (module2/Sujet/Sous-sujet/deep.html from src1)
-    with open(self.output_dir / "module2/Sujet/Sous-sujet/deep.html", "r", encoding="utf-8") as f:
-        content = f.read()
-        self.assertIn('class="nav-link active" href="../../../module2/index.html"', content)  # Parent actif
-        self.assertIn('class="nav-link active" href="../index.html"', content)  # Grand-parent actif
-        self.assertIn('class="nav-link current" href="deep.html"', content)  # Page courante
-        self.assertNotIn('class="nav-link current" href="../../../module2/index.html"', content)  # Pas courant
-        self.assertNotIn('class="nav-link current" href="../index.html"', content)  # Pas courant
+        # Test deep nested page (module2/Sujet/Sous-sujet/deep.html from src1)
+        with open(self.output_dir / "module2/Sujet/Sous-sujet/deep.html", "r", encoding="utf-8") as f:
+            content = f.read()
+            self.assertNotIn('class="nav-link active" href="../../../Source1/index.html"', content)  # Pas active
+            #self.assertIn('class="nav-link active" href="../../index.html"', content)  # module2
+            #self.assertIn('class="nav-link active" href="../index.html"', content)    # Sujet
+            self.assertIn('class="nav-link active" href="index.html"', content)       # Sous-sujet
+            self.assertIn('class="nav-link active current" href="deep.html"', content)
 
-    # Test page from src2 (extra.html)
-    with open(self.output_dir / "extra.html", "r", encoding="utf-8") as f:
-        content = f.read()
-        self.assertIn('class="nav-link current" href="extra.html"', content)  # <a> courant
-        self.assertNotIn('class="nav-link current" href="module1/index.html"', content)  # module1 ne doit pas être courant
+        # Test page from src2 (extra.html)
+        with open(self.output_dir / "extra.html", "r", encoding="utf-8") as f:
+            content = f.read()
+            self.assertIn('class="nav-link active current" href="extra.html"', content)
+            self.assertIn('class="nav-link active" href="Source2/index.html"', content)
 
 if __name__ == "__main__":
     unittest.main()

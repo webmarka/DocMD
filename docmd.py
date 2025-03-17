@@ -112,7 +112,6 @@ def should_exclude(file_path, exclude_paths):
 # Scan for Markdown files and build hierarchy
 def scan_markdown_files(projects, global_exclude_paths):
     markdown_files = []
-    folders_with_md = []
     project_groups = {}
 
     for project in projects:
@@ -146,35 +145,35 @@ def scan_markdown_files(projects, global_exclude_paths):
                         project_folders.append(rel_folder)
                     current = current.parent
 
-        # Construire la hiérarchie par projet
         hierarchy = {}
+        project_root_path = f"{project_name}/index.html"
+        hierarchy[project_root_path] = {
+            "title": project_name,
+            "rel_path": project_root_path,
+            "target_path": str(base_path),
+            "sub_pages": [],
+            "is_folder": True,
+            "project": project_name
+        }
+
         for folder in sorted(project_folders):
             folder_path = Path(folder) / "index.html"
             hierarchy[str(folder_path)] = {
-                "title": folder.split('/')[-1] if folder else project_name,
+                "title": folder.split('/')[-1],
                 "rel_path": str(folder_path),
-                "target_path": str(base_path / folder),  # Chemin absolu basé sur base_path
-                "sub_pages": [],
-                "is_folder": True,
-                "project": project_name
-            }
-        if any(not file["parent"] for file in project_files):
-            hierarchy["index.html"] = {
-                "title": project_name,
-                "rel_path": "index.html",
-                "target_path": str(base_path),  # Chemin absolu de la racine du projet
+                "target_path": str(base_path / folder),
                 "sub_pages": [],
                 "is_folder": True,
                 "project": project_name
             }
 
         for file in project_files:
-            parent_key = str(Path(file["parent"] or "").joinpath("index.html")) if file["parent"] else "index.html"
+            parent_key = str(Path(file["parent"] or "").joinpath("index.html")) if file["parent"] else project_root_path
             if file["rel_path"] != parent_key:
                 hierarchy[parent_key]["sub_pages"].append({
                     "title": file["title"],
                     "rel_path": file["rel_path"],
-                    "target_path": str(file["file_path"]),  # Chemin absolu du fichier
+                    "target_path": str(file["file_path"]),
                     "is_folder": False,
                     "project": project_name
                 })
@@ -184,9 +183,11 @@ def scan_markdown_files(projects, global_exclude_paths):
         project_groups[project_name] = list(hierarchy.values())
         markdown_files.extend(project_files)
 
-    all_pages = []
+    # Entrée racine globale avec un target_path fictif ou vide mais valide
+    all_pages = [{"title": "Home", "rel_path": "index.html", "target_path": str(projects[0]["path"]), "sub_pages": [], "is_folder": True, "project": "Root"}]
     for project_hierarchy in project_groups.values():
         all_pages.extend(project_hierarchy)
+    
     return markdown_files, all_pages
 
 # Save a Markdown file to the output directory
@@ -227,14 +228,44 @@ def convert_md_to_html(md_file_info, output_dir, all_pages, base_path):
     
     generate_page(current_page, title, html_content, output_file, adjusted_pages, css_path, theme_css_path, assets_path, bs_css_path)
 
+# Generate root index page
+def generate_root_index(output_dir, all_pages, base_paths):
+    """ Generate a global index.html at the root of the output directory."""
+    output_file = output_dir / "index.html"
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    current_page = "index.html"  # Page courante pour la racine
+    current_dir = "."  # Racine relative
+    adjusted_pages = get_pages_links(current_dir, all_pages, base_paths[0], current_page)  # Utilise le premier base_path comme référence
+    if debug: print(f"generate_root_index: current_page={current_page}, current_dir={current_dir}, adjusted_pages={[p['rel_path'] for p in adjusted_pages]}")
+    
+    title = "Documentation Home"
+    css_path = get_relative_path(CSS_PATH, current_dir)
+    theme_css_path = get_theme_css_path(current_dir)
+    assets_path = get_relative_path(ASSETS_PATH, current_dir)
+    bs_css_path = get_relative_path(BS_CSS_PATH, current_dir)
+    bs_css_path = BS_CSS_URL if USE_EXTERNAL_ASSETS != 'False' else bs_css_path
+    
+    # Contenu : liste des projets avec liens vers leurs index
+    content = "<h2>Welcome to the Documentation</h2><ul>"
+    for project in INCLUDE_PATHS:
+        project_name = project["name"]
+        project_index = f"{project_name}/index.html"
+        content += f"<li><a href='{quote(project_index)}'>{project_name}</a></li>"
+    content += "</ul>"
+    
+    if debug: print(f" Generating root index, current_page: {current_page}")
+    generate_page(current_page, title, content, output_file, adjusted_pages, css_path, theme_css_path, assets_path, bs_css_path)
+
 # Generate folder index page
 def generate_folder_index(folder_path, output_dir, all_pages, sub_pages, base_path):
     """ Generate an index.html for a folder."""
+    if str(folder_path) == "." and not sub_pages:  # Ignorer la racine globale sans sous-pages
+        return
     output_file = output_dir / folder_path / "index.html"
     output_file.parent.mkdir(parents=True, exist_ok=True)
     current_page = str(folder_path / "index.html" if folder_path.name else "index.html")
     current_dir = os.path.dirname(current_page) or "."
-    adjusted_pages = get_pages_links(current_dir, all_pages, base_path, current_page)  # Ajout de current_page
+    adjusted_pages = get_pages_links(current_dir, all_pages, base_path, current_page)
     if debug: print(f"generate_folder_index: current_page={current_page}, current_dir={current_dir}, adjusted_pages={[p['rel_path'] for p in adjusted_pages]}")
     title = folder_path.name if folder_path.name else "Home"
     css_path = get_relative_path(CSS_PATH, current_dir)
@@ -283,33 +314,53 @@ def generate_page(current_page, title, content, output_file, pages, css_path, th
         f.write(html_output)
     print(f" Generated: {output_file}")
 
+def is_in_hierarchy(page, current_page_full):
+    """Check if current_page_full is in the hierarchy of page."""
+    return any(
+        sub.get("rel_path", "") == current_page_full or is_in_hierarchy(sub, current_page_full)
+        for sub in page.get("sub_pages", [])
+    )
+
 def get_pages_links(current_dir, all_pages, base_path, current_page):
     if debug: print(f"get_pages_links: current_dir={current_dir}, current_page={current_page}")
     pages = []
-    current_page_full = str(current_page)  # Pas besoin de Path(current_dir) / current_page
-    if debug: print(f"current_page_full={current_page_full}")
+    current_page_full = str(current_page)
+
     for page in all_pages:
         page = page.copy()
-        page["ref_path"] = page["rel_path"]
-        page["rel_path"] = get_relative_path(page["rel_path"], current_dir)
+        page["ref_path"] = page.get("rel_path", "")
+        page["rel_path"] = get_relative_path(page["ref_path"], current_dir)
         page["is_current"] = page["ref_path"] == current_page_full
-        page["is_active"] = page["is_current"] or any(
-            sub["rel_path"] == current_page_full for sub in page["sub_pages"]
-        )
+        # Page is active if it’s current or a direct ancestor
+        # is_active is set to True for the current page and its direct ancestors in the hierarchy.
+        # Other pages (e.g., unrelated project roots) remain inactive.
+        page["is_active"] = page["is_current"]
         if debug: print(f"page: ref_path={page['ref_path']}, is_current={page['is_current']}, is_active={page['is_active']}, sub_pages={[sub['rel_path'] for sub in page['sub_pages']]}")
+
+        # Process sub-pages
         page["sub_pages"] = [
             {**sub,
-             "ref_path": sub["rel_path"],
-             "rel_path": get_relative_path(sub["rel_path"], current_dir),
-             "target_path": get_relative_path(sub["target_path"], base_path).replace(".md", ".html"),
-             "is_current": sub["rel_path"] == current_page_full,
-             "is_active": sub["rel_path"] == current_page_full
+             "ref_path": sub.get("rel_path", ""),
+             "rel_path": get_relative_path(sub.get("rel_path", ""), current_dir),
+             "is_current": sub.get("rel_path", "") == current_page_full,
+             "is_active": sub.get("rel_path", "") == current_page_full
             }
-            for sub in page["sub_pages"]
+            for sub in page.get("sub_pages", [])
         ]
+        # Propagate is_active up the hierarchy if a sub-page is current or active
+        if any(sub["is_current"] or sub["is_active"] for sub in page["sub_pages"]):
+            page["is_active"] = True
+
         for sub in page["sub_pages"]:
             if debug: print(f"sub_page: ref_path={sub['ref_path']}, is_current={sub['is_current']}, is_active={sub['is_active']}")
+
         pages.append(page)
+
+    # Propagate is_active to ancestors in the hierarchy
+    for page in pages:
+        if is_in_hierarchy(page, current_page_full):
+            page["is_active"] = True
+
     return pages
 
 # Get relative path from current directory.
@@ -406,11 +457,15 @@ def generate_site():
         try:
             base_path = next(bp["path"] for bp in INCLUDE_PATHS if Path(page["target_path"]).is_relative_to(bp["path"]))
         except StopIteration:
-            # Fallback si aucun projet ne correspond (cas rare)
             base_path = Path(INCLUDE_PATHS[0]["path"])
             print(f"Warning: Could not determine base_path for {page['target_path']}, using {base_path}")
         folder_path = Path(page["rel_path"]).parent
         generate_folder_index(folder_path, OUTPUT_DIR, pages_hierarchy, page["sub_pages"], base_path)
+    
+    # Générer l’index racine
+    print("\nGenerate root index.")
+    base_paths = [project["path"] for project in INCLUDE_PATHS]  # Liste des chemins de base
+    generate_root_index(OUTPUT_DIR, pages_hierarchy, base_paths)
     
     print("\nCopy the static assets folder.")
     if os.path.exists(f"{save_dir}/static"):
