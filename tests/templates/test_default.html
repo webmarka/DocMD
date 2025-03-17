@@ -30,7 +30,9 @@
 <body>
   <main>
     <nav class="sidebar">
-        <h2 class="px-3">{{ nav_title }}</h2>
+        <header>
+          <h2 class="px-3">{{ nav_title }}</h2>
+        </header>
         {% for project, pages in pages | groupby('project') %}
             <h3 class="px-3">{{ project }}</h3>
             <ul class="nav flex-column">
@@ -57,7 +59,9 @@
         {% endfor %}
     </nav>
     <div class="content">
-        <h1>{{ title }}</h1>
+        <header>
+          <h1>{{ title }}</h1>
+        </header>
         {{ content | safe }}
     </div>
   </main>

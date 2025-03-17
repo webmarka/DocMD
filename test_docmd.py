@@ -32,88 +32,6 @@ def create_test_tree(base_dir):
     (src2 / "extra.md").write_text("# Extra doc")
     
     (base_dir / "templates").mkdir(parents=True, exist_ok=True)
-    # Template synchronisé avec le log
-    (base_dir / "templates" / "test_default.html").write_text("""
-<!DOCTYPE html>
-<html lang="{{ lang }}" data-bs-theme="{{ theme_mode }}">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ title }} - DocMD</title>
-    <link rel="apple-touch-icon" sizes="57x57" href="{{ assets_path }}/img/favicon-57x57.png" type="image/png" />
-    <link rel="apple-touch-icon" sizes="60x60" href="{{ assets_path }}/img/favicon-60x60.png" type="image/png" />
-    <link rel="apple-touch-icon" sizes="72x72" href="{{ assets_path }}/img/favicon-72x72.png" type="image/png" />
-    <link rel="apple-touch-icon" sizes="114x114" href="{{ assets_path }}/img/favicon-114x114.png" type="image/png" />
-    <link rel="apple-touch-icon" sizes="120x120" href="{{ assets_path }}/img/favicon-120x120.png" type="image/png" />
-    <link rel="apple-touch-icon" sizes="144x144" href="{{ assets_path }}/img/favicon-144x144.png" type="image/png" />
-    <link rel="apple-touch-icon" sizes="152x152" href="{{ assets_path }}/img/favicon-152x152.png" type="image/png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ assets_path }}/img/favicon-180x180.png" type="image/png" />
-    <link rel="icon" sizes="16x16" href="{{ assets_path }}/img/favicon-16x16.png" type="image/png" />
-    <link rel="icon" sizes="32x32" href="{{ assets_path }}/img/favicon-32x32.png" type="image/png" />
-    <link rel="icon" sizes="96x96" href="{{ assets_path }}/img/favicon-96x96.png" type="image/png" />
-    <link rel="icon" sizes="192x192" href="{{ assets_path }}/img/favicon-192x192.png" type="image/png" />
-    <link rel="icon" sizes="512x512" href="{{ assets_path }}/img/favicon-512x512.png" type="image/png" />
-    <link rel="manifest" href="{{ assets_path }}/img/manifest.json" />
-    <meta name="theme-color" content="#FFFFFF" />
-    <meta name="msapplication-TileColor" content="#FFFFFF" />
-    <meta name="msapplication-TileImage" content="{{ assets_path }}/img/favicon-512x512.png" />
-    <link rel="stylesheet" href="{{ bs_css_path }}">
-    <link rel="stylesheet" href="{{ css_path }}">
-    <link rel="stylesheet" href="{{ theme_css_path }}">
-</head>
-<body>
-  <main>
-    <nav class="sidebar">
-        <h2 class="px-3">{{ nav_title }}</h2>
-        {% for page in pages %}
-            {% if page.project == 'Root' %}
-            <h3 class="px-3">{{ page.project }}</h3>
-            <ul class="nav flex-column">
-                <li class="nav-item{% if page.is_active %} active{% endif %}">
-                    <a class="nav-link{% if page.is_active %} active{% endif %}{% if page.is_current %} current{% endif %}" href="{{ page.rel_path | urlencode }}">
-                        <strong>{{ page.title }}</strong>
-                    </a>
-                </li>
-            </ul>
-            <hr class="project-separator">
-            {% endif %}
-        {% endfor %}
-        {% for page in pages %}
-            {% if page.project != 'Root' %}
-            <h3 class="px-3">{{ page.project }}</h3>
-            <ul class="nav flex-column">
-                <li class="nav-item{% if page.is_active %} active{% endif %}">
-                    <a class="nav-link{% if page.is_active %} active{% endif %}{% if page.is_current %} current{% endif %}" href="{{ page.rel_path | urlencode }}">
-                        <strong>{{ page.title }}</strong>
-                    </a>
-                    {% if page.sub_pages %}
-                        <ul class="nav-nested">
-                            {% for sub in page.sub_pages %}
-                                <li class="nav-item{% if sub.is_active %} active{% endif %}{% if sub.is_current %} current{% endif %}">
-                                    <a class="nav-link{% if sub.is_active %} active{% endif %}{% if sub.is_current %} current{% endif %}" href="{{ sub.rel_path | urlencode }}">
-                                        {{ sub.title }}
-                                    </a>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% endif %}
-                </li>
-            </ul>
-            <hr class="project-separator">
-            {% endif %}
-        {% endfor %}
-    </nav>
-    <div class="content">
-        <h1>{{ title }}</h1>
-        {{ content | safe }}
-    </div>
-  </main>
-  <footer>
-    <small>{{ footer }}</small>
-  </footer>
-    <script type="text/javascript" src="{{ assets_path }}/js/script.js?v={{ app_version }}"></script>
-</body>
-</html>
-    """)
     
     return [
         {"path": str(src1), "name": "Source1", "excludes": []},
@@ -151,7 +69,7 @@ class TestDocMD(unittest.TestCase):
         docmd.INCLUDE_PATHS = self.include_paths
         docmd.OUTPUT_DIR = self.output_dir
         docmd.SAVE_DIR = self.output_dir
-        docmd.TEMPLATE_DIR = str(self.test_dir / "templates")
+        docmd.TEMPLATE_DIR = str(self.test_dir / "../tests/templates")
         docmd.TEMPLATE = "test_default.html"  # Utilise le template synchronisé
         env = Environment(loader=FileSystemLoader(docmd.TEMPLATE_DIR))
         docmd.JINJA_ENV = env

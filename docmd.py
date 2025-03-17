@@ -65,6 +65,9 @@ TEMPLATE = os.environ.get("TEMPLATE", "default.html")
 BACKUP_DIR = Path(os.path.expanduser(os.getenv("BACKUP_DIR", "~/.docmd/archives")))
 DATE_TAG = datetime.now().strftime("%Y%m%d-%H%M%S")
 DATE_TAG_HUMAN = datetime.now().strftime("%Y-%m-%d at %H:%M:%S")
+ROOT_INDEX_TITLE = os.environ.get("ROOT_INDEX_TITLE", "Documentation Home")
+ROOT_INDEX_SUB_TITLE = os.environ.get("ROOT_INDEX_SUB_TITLE", "Welcome to the Documentation")
+ROOT_INDEX_PROJECT_NAME = os.environ.get("ROOT_INDEX_PROJECT_NAME", "Root")
 
 # Variables.
 APP_NAME = 'DocMD'
@@ -184,7 +187,7 @@ def scan_markdown_files(projects, global_exclude_paths):
         markdown_files.extend(project_files)
 
     # Entrée racine globale avec un target_path fictif ou vide mais valide
-    all_pages = [{"title": "Home", "rel_path": "index.html", "target_path": str(projects[0]["path"]), "sub_pages": [], "is_folder": True, "project": "Root"}]
+    all_pages = [{"title": ROOT_INDEX_TITLE, "rel_path": "index.html", "target_path": str(projects[0]["path"]), "sub_pages": [], "is_folder": True, "project": ROOT_INDEX_PROJECT_NAME}]
     for project_hierarchy in project_groups.values():
         all_pages.extend(project_hierarchy)
     
@@ -238,7 +241,9 @@ def generate_root_index(output_dir, all_pages, base_paths):
     adjusted_pages = get_pages_links(current_dir, all_pages, base_paths[0], current_page)  # Utilise le premier base_path comme référence
     if debug: print(f"generate_root_index: current_page={current_page}, current_dir={current_dir}, adjusted_pages={[p['rel_path'] for p in adjusted_pages]}")
     
-    title = "Documentation Home"
+    ROOT_INDEX_TITLE = os.environ.get("ROOT_INDEX_TITLE", "Documentation Home")
+    ROOT_INDEX_SUB_TITLE = os.environ.get("ROOT_INDEX_SUB_TITLE", "<h2>Welcome to the Documentation</h2>")
+    
     css_path = get_relative_path(CSS_PATH, current_dir)
     theme_css_path = get_theme_css_path(current_dir)
     assets_path = get_relative_path(ASSETS_PATH, current_dir)
@@ -246,7 +251,7 @@ def generate_root_index(output_dir, all_pages, base_paths):
     bs_css_path = BS_CSS_URL if USE_EXTERNAL_ASSETS != 'False' else bs_css_path
     
     # Contenu : liste des projets avec liens vers leurs index
-    content = "<h2>Welcome to the Documentation</h2><ul>"
+    content = "<h2>" + ROOT_INDEX_SUB_TITLE + "</h2><ul>"
     for project in INCLUDE_PATHS:
         project_name = project["name"]
         project_index = f"{project_name}/index.html"
@@ -254,7 +259,7 @@ def generate_root_index(output_dir, all_pages, base_paths):
     content += "</ul>"
     
     if debug: print(f" Generating root index, current_page: {current_page}")
-    generate_page(current_page, title, content, output_file, adjusted_pages, css_path, theme_css_path, assets_path, bs_css_path)
+    generate_page(current_page, ROOT_INDEX_TITLE, content, output_file, adjusted_pages, css_path, theme_css_path, assets_path, bs_css_path)
 
 # Generate folder index page
 def generate_folder_index(folder_path, output_dir, all_pages, sub_pages, base_path):
