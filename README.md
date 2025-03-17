@@ -2,10 +2,6 @@
 
 **DocMD** is a lightweight tool to generate a static documentation website from Markdown files located in your project's source directories. It creates a navigable HTML structure with an intuitive sidebar, perfect for documenting code or projects, usable locally or on a web server.
 
-## Version
-
-- **0.0.4** (March 2025) - Implement new ideas for the navigation and projects management. 
-
 ## Features
 
 - Automatic conversion of Markdown files to HTML.
@@ -67,8 +63,9 @@ After the first run, you can use the `source ./setup.sh` command instead and ent
 
 ## Usage
 
-- Open `docs/index.html` in a browser to explore the generated documentation.
-- To test on a local server:  
+- Open `docs/index.html` in a browser to explore the generated documentation.  
+
+To test on a local server:  
 
     # bash
     cd docs
@@ -82,6 +79,10 @@ On the first run, you may need to install some packages et the Python environmen
 
     # bash
     ./setup.py
+
+If you want to get a more verbose console output so you can figure out what is going on internally, you can enable the debug mode via your `.env` file:  
+
+    DEBUG=True
 
 ## Customization
 
