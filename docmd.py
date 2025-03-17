@@ -42,6 +42,15 @@ def clean_lang(lang_str):
     base_lang = lang_str.split(".")[0].replace("_", "-")
     return base_lang
 
+# Environnement Jinja2 global
+JINJA_ENV = jinja2.Environment(loader=jinja2.FileSystemLoader('templates'))
+
+# Filtre personnalisé
+def has_active_subpage(sub_pages, current_page):
+    return any(sub["rel_path"] == current_page for sub in sub_pages)
+
+JINJA_ENV.filters['has_active_subpage'] = has_active_subpage
+
 # Configuration
 LANG = clean_lang(os.environ.get("LANG", "en_US.UTF-8"))
 #INCLUDE_PATHS = get_paths(os.environ.get("INCLUDE_PATHS", "src"))
@@ -201,6 +210,7 @@ def convert_md_to_html(md_file_info, output_dir, all_pages, base_path):
     current_page = md_file_info["rel_path"]
     current_dir = os.path.dirname(current_page) or "."
     adjusted_pages = get_pages_links(current_dir, all_pages, base_path)
+    print(f"convert_md_to_html: current_page={current_page}, adjusted_pages={[p['rel_path'] for p in adjusted_pages]}")
     title=md_file_info["title"]
     css_path = get_relative_path(CSS_PATH, current_dir)
     theme_css_path = get_theme_css_path(current_dir)
@@ -221,6 +231,7 @@ def generate_folder_index(folder_path, output_dir, all_pages, sub_pages, base_pa
     current_page = str(folder_path / "index.html" if folder_path.name else "index.html")
     current_dir = os.path.dirname(current_page) or "."
     adjusted_pages = get_pages_links(current_dir, all_pages, base_path)
+    print(f"generate_folder_index: current_page={current_page}, adjusted_pages={[p['rel_path'] for p in adjusted_pages]}")
     title = folder_path.name if folder_path.name else "Home"
     css_path = get_relative_path(CSS_PATH, current_dir)
     theme_css_path = get_theme_css_path(current_dir)
@@ -241,9 +252,9 @@ def generate_folder_index(folder_path, output_dir, all_pages, sub_pages, base_pa
     generate_page(current_page, title, content, output_file, adjusted_pages, css_path, theme_css_path, assets_path, bs_css_path)
 
 def generate_page(current_page, title, content, output_file, pages, css_path, theme_css_path, assets_path, bs_css_path):
-    env = jinja2.Environment(loader=jinja2.FileSystemLoader('templates'))
+    
     try:
-        template = env.get_template(TEMPLATE)
+        template = JINJA_ENV.get_template(TEMPLATE)
     except jinja2.TemplateNotFound:
         print(f" Error: Template '{TEMPLATE}' not found in 'templates/'")
         return
@@ -272,13 +283,15 @@ def generate_page(current_page, title, content, output_file, pages, css_path, th
 def get_pages_links(current_dir, all_pages, base_path):
     pages = []
     for page in all_pages:
-        #target_path = page["target_path"]
-        rel_path = get_relative_path(page["rel_path"], current_dir)
         page = page.copy()
-        page["rel_path"] = rel_path
-        #page["target_path"] = target_path
+        page["ref_path"] = page["rel_path"]
+        page["rel_path"] = get_relative_path(page["rel_path"], current_dir)
         page["sub_pages"] = [
-            {**sub, "rel_path": get_relative_path(sub["rel_path"], current_dir), "target_path": get_relative_path(sub["target_path"], base_path).replace(".md", ".html")}
+            {**sub, 
+              "ref_path": sub["rel_path"],
+              "rel_path": get_relative_path(sub["rel_path"], current_dir), 
+              "target_path": get_relative_path(sub["target_path"], base_path).replace(".md", ".html")
+            }
             for sub in page["sub_pages"]
         ]
         pages.append(page)

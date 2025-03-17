@@ -26,8 +26,6 @@
     <link rel="stylesheet" href="{{ bs_css_path }}">
     <link rel="stylesheet" href="{{ css_path }}">
     <link rel="stylesheet" href="{{ theme_css_path }}">
-    <style>
-    </style>
 </head>
 <body>
   <main>
@@ -37,15 +35,17 @@
             <h3 class="px-3">{{ project }}</h3>
             <ul class="nav flex-column">
                 {% for page in pages %}
-                    <li  class="nav-item{% if page.rel_path == current_page %} active{% endif %}">
-                        <a class="nav-link{% if page.target_path == current_page %} active{% endif %}" href="{{ page.rel_path | urlencode }}">
+                    {% set is_active = page.ref_path == current_page or page.sub_pages | has_active_subpage(current_page) %}
+                    <li class="nav-item{% if is_active %} active{% endif %}">
+                        <a class="nav-link{% if is_active %} active{% endif %}" href="{{ page.rel_path | urlencode }}">
                             {% if page.is_folder %}<strong>{{ page.title }}</strong>{% else %}{{ page.title }}{% endif %}
                         </a>
                         {% if page.sub_pages %}
-                            <ul>
+                            <ul class="nav-nested">
                                 {% for sub in page.sub_pages %}
-                                    <li class="nav-item{% if sub.rel_path == current_page %} active{% endif %}">
-                                        <a class="nav-link{% if sub.target_path == current_page %} active{% endif %}" href="{{ sub.rel_path | urlencode }}">
+                                  {% set is_active = sub.ref_path == current_page %}
+                                    <li class="nav-item{% if is_active %} active{% endif %}">
+                                        <a class="nav-link{% if is_active %} active{% endif %}" href="{{ sub.rel_path | urlencode }}">
                                             {% if sub.is_folder %}<strong>{{ sub.title }}</strong>{% else %}{{ sub.title }}{% endif %}
                                         </a>
                                     </li>
@@ -66,8 +66,6 @@
   <footer>
     <small>{{ footer }}</small>
   </footer>
-    <script type="text/javascript">
-    </script>
     <script type="text/javascript" src="{{ assets_path }}/js/script.js?v={{ app_version }}"></script>
 </body>
 </html>
