@@ -1,6 +1,6 @@
 # DocMD
 # Description: Generate a static documentation website from Markdown files in a project's source-code.
-# Version: 0.0.3
+# Version: 0.0.4
 # Authors: webmarka
 # URL: https://gitlab.com/webmarka/docmd
 
@@ -71,7 +71,7 @@ ROOT_INDEX_PROJECT_NAME = os.environ.get("ROOT_INDEX_PROJECT_NAME", "Root")
 
 # Variables.
 APP_NAME = 'DocMD'
-APP_VERSION = '0.0.3'
+APP_VERSION = '0.0.4'
 APP_URL = 'https://docmd.us/'
 NAV_TITLE = os.environ.get("NAV_TITLE", "Documentation")
 ASSETS_PATH = 'static'
