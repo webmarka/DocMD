@@ -1,8 +1,15 @@
 <!DOCTYPE html>
 <html lang="{{ lang }}" data-bs-theme="{{ theme_mode }}">
 <head>
-    <meta charset="UTF-8">
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="{{ app_description }}">
+    <meta name="author" content="{{ app_author }}">
+    <meta name="generator" content="{{ app_name }} - {{ app_version }}">
+    
     <title>{{ title }} - DocMD</title>
+    
     <!-- Favicons -->
     <link rel="apple-touch-icon" sizes="57x57" href="{{ assets_path }}/img/favicon-57x57.png" type="image/png" />
     <link rel="apple-touch-icon" sizes="60x60" href="{{ assets_path }}/img/favicon-60x60.png" type="image/png" />
@@ -19,32 +26,33 @@
     <link rel="icon" sizes="512x512" href="{{ assets_path }}/img/favicon-512x512.png" type="image/png" />
     <!--<link rel="icon" href="{{ assets_path }}/img/favicon.svg"  type="image/svg+xml" />-->
     <link rel="manifest" href="{{ assets_path }}/img/manifest.json" />
-    <meta name="theme-color" content="#FFFFFF" />
-    <meta name="msapplication-TileColor" content="#FFFFFF" />
+    <meta name="theme-color" content="light dark" />
+    <meta name="msapplication-TileColor" content="#666666" />
     <meta name="msapplication-TileImage" content="{{ assets_path }}/img/favicon-512x512.png" />
-    <!-- Styles -->
+    <!-- Styles CSS -->
     <link rel="stylesheet" href="{{ bs_css_path }}">
     <link rel="stylesheet" href="{{ css_path }}">
     <link rel="stylesheet" href="{{ theme_css_path }}">
 </head>
-<body>
+<body id="{{ page_id }}" class="{{ body_class }}">
   <main>
     <nav class="sidebar">
         <header>
           <h2 class="px-3">{{ nav_title }}</h2>
         </header>
         {% for project, pages in pages | groupby('project') %}
+        <div class="project-{{ loop.index }}">
             <h3 class="px-3">{{ project }}</h3>
             <ul class="nav flex-column">
                 {% for page in pages %}
-                    <li class="nav-item{% if page.is_active %} active{% endif %}{% if page.is_current %} current{% endif %}">
+                    <li class="nav-item{% if page.is_active %} active{% endif %}{% if page.is_current %} current{% endif %} page-{{ loop.index }}">
                         <a class="nav-link{% if page.is_active %} active{% endif %}{% if page.is_current %} current{% endif %}" href="{{ page.rel_path | urlencode }}">
                             {% if page.is_folder %}<strong>{{ page.title }}</strong>{% else %}{{ page.title }}{% endif %}
                         </a>
                         {% if page.sub_pages %}
                             <ul class="nav-nested">
                                 {% for sub in page.sub_pages %}
-                                    <li class="nav-item{% if sub.is_active %} active{% endif %}{% if sub.is_current %} current{% endif %}">
+                                    <li class="nav-item{% if sub.is_active %} active{% endif %}{% if sub.is_current %} current{% endif %} subpage-{{ loop.index }}">
                                         <a class="nav-link{% if sub.is_active %} active{% endif %}{% if sub.is_current %} current{% endif %}" href="{{ sub.rel_path | urlencode }}">
                                             {% if sub.is_folder %}<strong>{{ sub.title }}</strong>{% else %}{{ sub.title }}{% endif %}
                                         </a>
@@ -56,6 +64,7 @@
                 {% endfor %}
             </ul>
             <hr class="project-separator">
+        </div>
         {% endfor %}
     </nav>
     <div class="content">
@@ -67,6 +76,15 @@
   </main>
   <footer>
     <small>{{ footer }}</small>
+    <!--
+    App Name: {{ app_name }}; 
+    Version: {{ app_version }}; 
+    Theme mode: {{ theme_mode }}; 
+    Page ID: {{ page_id }}; 
+    Lang: {{ lang }}; 
+    Date: {{ date_tag_human }}; 
+    Size: {{ file_size }}; 
+    -->
   </footer>
     <script type="text/javascript" src="{{ assets_path }}/js/script.js?v={{ app_version }}"></script>
 </body>
