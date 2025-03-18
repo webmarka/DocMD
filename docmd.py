@@ -14,6 +14,10 @@ import shutil
 from datetime import datetime
 from urllib.parse import quote
 import json
+import html
+import re
+from unidecode import unidecode
+import hashlib
 
 # Environment setup
 load_dotenv()
@@ -68,11 +72,15 @@ DATE_TAG_HUMAN = datetime.now().strftime("%Y-%m-%d at %H:%M:%S")
 ROOT_INDEX_TITLE = os.environ.get("ROOT_INDEX_TITLE", "Documentation Home")
 ROOT_INDEX_SUB_TITLE = os.environ.get("ROOT_INDEX_SUB_TITLE", "Welcome to the Documentation")
 ROOT_INDEX_PROJECT_NAME = os.environ.get("ROOT_INDEX_PROJECT_NAME", "Root")
+ROOT_DISPLAY_MENU = os.environ.get("ROOT_DISPLAY_MENU", "True")
+ROOT_SPLASH_PAGE = os.environ.get("ROOT_SPLASH_PAGE", "False")
 
 # Variables.
 APP_NAME = 'DocMD'
+APP_DESCRIPTION = 'Generate a static documentation website from Markdown files in a project\'s source-code.'
 APP_VERSION = '0.0.4'
 APP_URL = 'https://docmd.us/'
+APP_AUTHOR = APP_NAME
 NAV_TITLE = os.environ.get("NAV_TITLE", "Documentation")
 ASSETS_PATH = 'static'
 CSS_PATH = 'static/css/style.css'
@@ -187,7 +195,7 @@ def scan_markdown_files(projects, global_exclude_paths):
         markdown_files.extend(project_files)
 
     # Entrée racine globale avec un target_path fictif ou vide mais valide
-    all_pages = [{"title": ROOT_INDEX_TITLE, "rel_path": "index.html", "target_path": str(projects[0]["path"]), "sub_pages": [], "is_folder": True, "project": ROOT_INDEX_PROJECT_NAME}]
+    all_pages = [{"title": ROOT_INDEX_TITLE, "rel_path": "index.html", "target_path": str(projects[0]["path"]), "sub_pages": [], "is_folder": True, "project": ROOT_INDEX_PROJECT_NAME, "file_hash": None}]
     for project_hierarchy in project_groups.values():
         all_pages.extend(project_hierarchy)
     
@@ -225,11 +233,13 @@ def convert_md_to_html(md_file_info, output_dir, all_pages, base_path):
     assets_path = get_relative_path(ASSETS_PATH, current_dir)
     bs_css_path = get_relative_path(BS_CSS_PATH, current_dir)
     bs_css_path = BS_CSS_URL if USE_EXTERNAL_ASSETS != 'False' else bs_css_path
+    #file_hash = get_file_hash(md_file)
+    file_size = os.path.getsize(md_file)
     
     if debug:
         print(f" Generating page {title}, current_page: {current_page}")
     
-    generate_page(current_page, title, html_content, output_file, adjusted_pages, css_path, theme_css_path, assets_path, bs_css_path)
+    generate_page(current_page, title, html_content, output_file, adjusted_pages, css_path, theme_css_path, assets_path, bs_css_path, file_size)
 
 # Generate root index page
 def generate_root_index(output_dir, all_pages, base_paths):
@@ -264,8 +274,8 @@ def generate_root_index(output_dir, all_pages, base_paths):
 # Generate folder index page
 def generate_folder_index(folder_path, output_dir, all_pages, sub_pages, base_path):
     """ Generate an index.html for a folder."""
-    if str(folder_path) == "." and not sub_pages:  # Ignorer la racine globale sans sous-pages
-        return
+    #if str(folder_path) == "." and not sub_pages:  # Ignorer la racine globale sans sous-pages
+    #    return
     output_file = output_dir / folder_path / "index.html"
     output_file.parent.mkdir(parents=True, exist_ok=True)
     current_page = str(folder_path / "index.html" if folder_path.name else "index.html")
@@ -281,16 +291,20 @@ def generate_folder_index(folder_path, output_dir, all_pages, sub_pages, base_pa
     
     if debug: print(f" Generating index for {folder_path}, current_page: {current_page}, sub_pages: {sub_pages}")
     
-    content = f"<h2>{title}</h2><ul>"
-    for sub_page in sub_pages:
-        sub_target_path = sub_page["rel_path"]
-        sub_rel_path = get_relative_path(sub_target_path, current_dir)
-        content += f"<li><a href='{quote(sub_rel_path)}'>{sub_page['title']}</a></li>"
-    content += "</ul>"
+    if not sub_pages:
+        content = f"<h2>{title}</h2>"
+        content += f"<p>You are here: {current_page}</p>"
+    else:
+        content = f"<h2>{title}</h2><ul>"
+        for sub_page in sub_pages:
+            sub_target_path = sub_page["rel_path"]
+            sub_rel_path = get_relative_path(sub_target_path, current_dir)
+            content += f"<li><a href='{quote(sub_rel_path)}'>{sub_page['title']}</a></li>"
+        content += "</ul>"
     
     generate_page(current_page, title, content, output_file, adjusted_pages, css_path, theme_css_path, assets_path, bs_css_path)
 
-def generate_page(current_page, title, content, output_file, pages, css_path, theme_css_path, assets_path, bs_css_path):
+def generate_page(current_page, title, content, output_file, pages, css_path, theme_css_path, assets_path, bs_css_path, file_size = None, file_hash = None):
     
     try:
         template = JINJA_ENV.get_template(TEMPLATE)
@@ -298,6 +312,8 @@ def generate_page(current_page, title, content, output_file, pages, css_path, th
         print(f" Error: Template '{TEMPLATE}' not found in 'templates/'")
         return
     title = title if title else "Home"
+    page_id = format_alias(current_page, "_")
+    body_class = get_body_class(current_page)
     
     html_output = template.render(
         title=title,
@@ -305,15 +321,22 @@ def generate_page(current_page, title, content, output_file, pages, css_path, th
         lang=LANG,
         pages=pages,
         current_page=current_page,
+        page_id=page_id,
+        body_class=body_class,
         css_path=css_path,
         theme_css_path=theme_css_path,
         theme_mode=THEME_MODE,
         assets_path=assets_path,
         footer=FOOTER,
-        app_name=APP_NAME,
-        nav_title=NAV_TITLE,
+        date_tag_human=DATE_TAG_HUMAN,
+        file_size=file_size,
+        file_hash=file_hash,
         bs_css_path=bs_css_path,
-        app_version=APP_VERSION
+        nav_title=NAV_TITLE,
+        app_name=APP_NAME,
+        app_author=APP_AUTHOR,
+        app_version=APP_VERSION,
+        app_description=APP_DESCRIPTION
     )
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(html_output)
@@ -373,6 +396,37 @@ def get_relative_path(target_path, current_dir):
     rel_path = os.path.relpath(target_path, current_dir).replace("\\", "/")
     return rel_path or target_path
 
+def get_body_class(current_page):
+    current_page = current_page if current_page != "" else 'Default'
+    body_class = format_alias(APP_NAME)
+    body_class += " " + format_alias(THEME_MODE)
+    body_class += " " + format_alias(LANG)
+    body_class += " " + format_alias(current_page)
+    
+    root_display_menu = 'root-menu-display' if ROOT_DISPLAY_MENU != 'False' else 'root-menu-hide'
+    root_splash_page = 'root-splash-page' if ROOT_SPLASH_PAGE == 'True' else 'root-default-page'
+    
+    body_class += " " + format_alias(root_display_menu)
+    body_class += " " + format_alias(root_splash_page)
+    
+    return body_class
+
+def get_file_hash(file_name):
+    if os.path.exists(file_name):
+      with open(file_name, 'rb') as file_obj:
+          file_contents = file_obj.read()
+          #m = hashlib.sha256()
+          #m.update(file_contents.encode('utf-8'))
+          #return m.hexdigest()
+    else:
+      return None
+
+def format_alias(string, replacement='-'):
+    return html.escape(remove_special_chars(string, replacement).lower())
+    
+def remove_special_chars(string, replacement='-'):
+    return re.sub('\W+', replacement, unidecode(string))
+
 def get_theme(theme):
     if theme and theme in THEMES: 
       return theme
@@ -398,11 +452,11 @@ def directory_security_check(directory):
     """ Check if a directory is safe to use."""
     return (
         directory != Path("") and
-        directory != Path(".") and
+        #directory != Path(".") and
         directory != Path("..") and
-        not directory.is_absolute() and
-        directory != Path("/") and
-        directory != Path("./")
+        not directory.is_absolute()
+        #directory != Path("/")
+        #directory != Path("./")
     )
 
 # Clean a directory with backup
@@ -426,6 +480,7 @@ def clean_dir(directory):
 # Main site generation function.
 def generate_site():
     global OUTPUT_DIR
+    #print('OUTPUT_DIR', OUTPUT_DIR)
     if not directory_security_check(OUTPUT_DIR):
         print(f"Warning: OUTPUT_DIR '{OUTPUT_DIR}' is unsafe, resetting to 'docs'.")
         OUTPUT_DIR = Path("docs")
@@ -447,6 +502,11 @@ def generate_site():
         print('Sources folders empty.')
         return
     
+    print("\nCopy the static assets folder.")
+    if os.path.exists(f"{save_dir}/static"):
+        shutil.rmtree(f"{save_dir}/static")
+    shutil.copytree("./static", f"{save_dir}/static")
+    
     print("\nCopy MD files.")
     for md_file in md_files:
         base_path = next(bp["path"] for bp in INCLUDE_PATHS if md_file["file_path"].is_relative_to(bp["path"]))
@@ -465,17 +525,13 @@ def generate_site():
             base_path = Path(INCLUDE_PATHS[0]["path"])
             print(f"Warning: Could not determine base_path for {page['target_path']}, using {base_path}")
         folder_path = Path(page["rel_path"]).parent
+        #print('OUTPUT_DIR', OUTPUT_DIR)
         generate_folder_index(folder_path, OUTPUT_DIR, pages_hierarchy, page["sub_pages"], base_path)
-    
+
     # Générer l’index racine
     print("\nGenerate root index.")
     base_paths = [project["path"] for project in INCLUDE_PATHS]  # Liste des chemins de base
     generate_root_index(OUTPUT_DIR, pages_hierarchy, base_paths)
-    
-    print("\nCopy the static assets folder.")
-    if os.path.exists(f"{save_dir}/static"):
-        shutil.rmtree(f"{save_dir}/static")
-    shutil.copytree("./static", f"{save_dir}/static")
 
 # Main function
 if __name__ == "__main__":

@@ -84,3 +84,73 @@ h2, h3, h4, h5, h6 {
 }
 .nav .nav-link.current, .nav .current > .nav-link {
 }
+
+/* Splash Page Option */
+.index-html.root-splash-page {}
+.index-html.root-splash-page .sidebar,
+.index-html.root-splash-page .content header,
+.index-html.root-splash-page footer {
+  display: none;
+}
+.index-html.root-splash-page main {
+  display: block;
+  height: auto;
+  text-align: center;
+}
+.index-html.root-splash-page .content {
+  width: 75%;
+  margin: 11% auto;
+  height: 78%;
+  text-align: center;
+}
+
+/* Menu Hide Option */
+.index-html.root-menu-hide {
+  
+}
+
+/*
+ * Responsive
+ */
+
+/* Extra small devices (portrait phones, less than 576px) */
+/* No media query for `xs` since this is the default in Bootstrap */
+@media (max-width: 575px) {
+  main {
+    display: block;
+    height: auto;
+  }
+  .sidebar, .content {
+    width: 100%;
+    display: block;
+    overflow-wrap: break-word;
+  }
+  .sidebar {
+    height: auto;
+  }
+  
+  .index-html.root-splash-page .content {
+    width: 90%;
+  }
+}
+
+/* Small devices (landscape phones, 576px and up) */
+@media (min-width: 576px) {}
+
+/* Medium devices (tablets, 768px and up) */
+@media (min-width: 768px) {}
+
+/* Large devices (desktops, 992px and up) */
+@media (min-width: 992px) {}
+
+/* Extra large devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) {
+
+  .index-html.root-splash-page .content {
+    width: 60%;
+    margin: 11% auto;
+  }
+}
+
+/* Small devices (landscape phones, less than 768px) */
+@media (max-width: 767.98px) {}

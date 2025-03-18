@@ -5,6 +5,7 @@ import unittest
 from unittest.mock import patch, mock_open
 import sys
 from jinja2 import Environment, FileSystemLoader
+import html
 
 sys.path.append(os.path.dirname(__file__))
 import docmd
@@ -140,22 +141,34 @@ class TestDocMD(unittest.TestCase):
                 assets_path = docmd.get_relative_path(docmd.ASSETS_PATH, "module1")
                 bs_css_path = docmd.get_relative_path(docmd.BS_CSS_PATH, "module1")
                 bs_css_path = docmd.BS_CSS_URL if docmd.USE_EXTERNAL_ASSETS != 'False' else bs_css_path
+                current_page = "module1/doc.html"
+                page_id = docmd.format_alias(current_page, "_")
+                body_class = docmd.get_body_class(current_page)
+                file_hash = None
+                file_size = os.path.getsize(md_file_info["file_path"])
                 
                 mock_template.render.assert_called_once_with(
                     title="doc",
                     content="<h1>Doc in module1</h1>",
                     lang=docmd.LANG,
                     pages=[],
-                    current_page="module1/doc.html",
+                    current_page=current_page,
+                    page_id=page_id,
+                    body_class=body_class,
                     css_path=css_path,
                     theme_css_path=theme_css_path,
                     theme_mode=docmd.THEME_MODE,
                     assets_path=assets_path,
                     footer=docmd.FOOTER,
-                    app_name=docmd.APP_NAME,
-                    nav_title=docmd.NAV_TITLE,
+                    date_tag_human=docmd.DATE_TAG_HUMAN,
+                    file_hash=file_hash,
+                    file_size=file_size,
                     bs_css_path=bs_css_path,
-                    app_version=docmd.APP_VERSION
+                    nav_title=docmd.NAV_TITLE,
+                    app_name=docmd.APP_NAME,
+                    app_author=docmd.APP_AUTHOR,
+                    app_version=docmd.APP_VERSION,
+                    app_description=docmd.APP_DESCRIPTION
                 )
 
     def test_navigation_active_state(self):

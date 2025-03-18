@@ -119,7 +119,7 @@ echo
 echo " Install Python packages..."
 echo
 echo " Running pip3 install..."
-pip3 install python-dotenv Markdown Jinja2 shutils || {
+pip3 install python-dotenv Markdown Jinja2 shutils Unidecode || {
     echo " Error: Failed to install Python packages"
     exit 1
 }
