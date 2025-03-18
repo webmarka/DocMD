@@ -14,7 +14,7 @@
 ## Prerequisites
 
 - Python 3.10+
-- Dependencies: `python-dotenv`, `Markdown`, `Jinja2`, `shutils` (installed via `setup.sh`).
+- Dependencies: `python-dotenv`, `Markdown`, `Jinja2`, `shutils`, `Unidecode` (installed via `setup.sh`).
 
 ## Installation
 
@@ -48,6 +48,7 @@
     ROOT_INDEX_TITLE = "Documentation Home"
     ROOT_INDEX_SUB_TITLE = "Welcome to the Documentation"
     ROOT_INDEX_PROJECT_NAME = "Root"
+    ROOT_SPLASH_PAGE = False
     DEBUG=False
 
 **Run the setup and generation script:**
@@ -91,6 +92,7 @@ If you want to get a more verbose console output so you can figure out what is g
 
 ## Changelog
 
+- **0.0.5** (March 2025) - Better HTML markup and added options for website publishing.  
 - **0.0.4** (March 2025) - Implement new ideas for the navigation and projects management. 
 - **0.0.3** (March 2025) - Customizations, themes and dark mode.
 - **0.0.2** (March 2025) - Improved navigation, robust unit tests, folder index page generation.
